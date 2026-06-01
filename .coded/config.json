@@ -1,0 +1,20 @@
+{
+  "name": "coded",
+  "defaultWorkflow": "default",
+  "defaultAgents": {
+    "implement": "claude-code",
+    "verify": "codex",
+    "checkpoint": "claude-code"
+  },
+  "context": {
+    "defaultMode": "standard",
+    "maxKnowledgeFiles": 6,
+    "maxRecentStageRuns": 3
+  },
+  "assets": {
+    "knowledgeDir": ".coded/knowledge",
+    "workflowsDir": ".coded/workflows",
+    "promptsDir": ".coded/prompts",
+    "runsDir": ".coded/runs"
+  }
+}
