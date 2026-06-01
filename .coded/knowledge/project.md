@@ -15,3 +15,13 @@ coded is a task runner and orchestration layer for Claude Code and Codex. It lau
 - `coded run` should become the default entry point for launching Claude Code / Codex.
 - Verification and checkpointing should be agent-driven stages, not logic coded performs by itself.
 - Project-specific reusable workflows, knowledge, and prompt templates should live under `.coded/`.
+
+## Result-Layer Focus
+
+coded owns the result layer of a long-horizon task, not the development path:
+
+- Task Contract (`.coded/templates/contract.yaml`): goal, scope, non-goals, acceptance criteria, and the verification contract (self-test cases). This is the anchor.
+- Checkpoint (`.coded/templates/checkpoint.yaml`): compresses a round and runs a drift check against the contract.
+- Completion Analysis (`.coded/templates/completion.yaml`): item-by-item verdict against the contract.
+
+How the agent actually explores and implements is deliberately left open — that is Claude Code / Codex's job.

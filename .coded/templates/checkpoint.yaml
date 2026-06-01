@@ -1,0 +1,26 @@
+# Checkpoint — one snapshot per implement -> verify round.
+# Stored under .coded/runs/<task-id>/checkpoints/<n>.yaml.
+# A checkpoint does three jobs: compress this round, check for drift against
+# the contract, and propose reusable knowledge.
+contractVersion: 1
+
+# 1. Compress: durable facts from this round, not a transcript.
+completed: []
+evidence: []             # command results, changed files, screenshots, review notes
+decisions: []
+remaining: []
+
+# 2. Drift check: is the task still doing what the contract says?
+drift:
+  status: on_track       # on_track | drifting | scope_changed
+  findings: []           # concrete observations, e.g. "touched billing, outside scope"
+  recommendation: continue   # continue | revise_plan | amend_contract
+
+# A short hint for where the next session should pick up. coded does not
+# prescribe a development path — this is just a handoff note.
+nextStep: ""
+
+# 3. Reusable knowledge proposed this round (pending user confirmation).
+knowledgeCandidates: []
+workflowCandidates: []
+promptCandidates: []

@@ -1,0 +1,29 @@
+# Completion Analysis — the item-by-item judgement against the contract.
+# Stored as .coded/runs/<task-id>/completion.yaml, produced by the complete stage.
+# This is intentionally separate from checkpoints: a checkpoint summarizes a
+# round, this judges the whole task against its contract.
+contractVersion: 1
+analyzedAt: ""
+verdict: incomplete      # done | incomplete | done_with_waivers
+
+# One row per acceptance criterion in the contract.
+acceptanceCriteria:
+  - id: ac-1
+    result: unmet        # met | unmet | waived
+    evidence: []
+
+# One row per required verification check. A check is never "passed" without
+# evidence.
+checks:
+  - id: chk-1
+    status: unknown      # passed | failed | waived | unknown
+    evidence: ""
+
+unmet: []                # acceptance criteria / checks still blocking done
+waivers:                 # required checks the user explicitly excused
+  - checkId: ""
+    reason: ""
+    approvedBy: user
+
+remainingWork: []
+summary: ""

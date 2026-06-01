@@ -1,0 +1,45 @@
+# Task Contract — the anchor for a long-horizon task.
+# coded copies this into .coded/runs/<task-id>/contract.yaml when a task starts.
+# It is versioned: bump `version` and append to `amendments` on every change,
+# so checkpoints and the completion analysis can always say which contract
+# version they judged against.
+version: 1
+taskId: ""
+title: ""
+objective: ""            # what we are really trying to achieve, in one sentence
+scope:                   # what is in scope
+  - ""
+nonGoals:                # what is explicitly out of scope — the anti-drift guard
+  - ""
+
+# Acceptance criteria are the user-facing definition of done.
+# Each one links to the verification checks that prove it, so completion
+# analysis can check them item by item instead of guessing.
+acceptanceCriteria:
+  - id: ac-1
+    statement: ""
+    verifiedBy: []       # verification check ids that prove this criterion, e.g. [chk-1]
+
+# Verification contract — "how do we know this is right". Define it before
+# implement, not after. Each check is addressable by id and carries its own
+# latest status + evidence.
+verification:
+  checks:
+    - id: chk-1
+      name: ""
+      type: test         # test | typecheck | lint | build | repro | screenshot | manual
+      command: ""        # command to run, or null for a manual check
+      manualProcedure: null
+      expectedSignal: "" # what output counts as pass, e.g. "exit 0"
+      requiredForDone: true
+      status: unknown    # unknown | passed | failed | waived
+      latestEvidence: null
+      waiverReason: null
+
+# Audit trail of every change to this contract. Drift that the user accepts
+# becomes an amendment instead of silent scope creep.
+amendments:
+  - version: 1
+    at: ""
+    reason: "initial contract"
+    changedBy: user      # user | agent
