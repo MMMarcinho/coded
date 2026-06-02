@@ -8,6 +8,7 @@ import { cmdList } from "./commands/list.js";
 import { cmdCheckpoint, cmdComplete, ensureExists } from "./commands/record.js";
 import { cmdSelfTestAdd, cmdSelfTestStatus } from "./commands/selftest.js";
 import { cmdDone } from "./commands/done.js";
+import { cmdVerify } from "./commands/verify.js";
 
 const program = new Command();
 
@@ -115,6 +116,15 @@ selftest
   .action((name, opts) =>
     run(() => cmdSelfTestAdd(opts.task, name, { type: opts.type, required: !opts.optional, cmd: opts.cmd })),
   );
+
+program
+  .command("verify")
+  .argument("[task]", "task id (default: most recent)")
+  .option("-a, --agent <agent>", "claude-code | codex")
+  .option("--interactive", "launch the agent interactively instead of headless")
+  .option("--print", "print the confirm prompt instead of waking an agent")
+  .description("Confirm self-tests/checkpoints: run commands, then wake the agent for the rest.")
+  .action((task, opts) => run(() => cmdVerify(task, opts)));
 
 program
   .command("done")

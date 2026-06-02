@@ -251,9 +251,24 @@ coded prompt --stage implement              # 组装 Context Pack 并启动 clau
 # 加自测和更新状态都用一行命令，不用搬文件、不用编辑 yaml
 coded selftest add "上传头像并预览"
 coded selftest add "详细地址必填校验" --type unit --cmd "npm test -- profile"
-coded selftest pass st-1 "手动验证通过"
+coded verify --agent claude-code            # 无感自测：见下
 coded done                                  # 必测全过才放行（未过会列出待办；--force 可强制）
 ```
+
+### 无感自测：`coded verify`
+
+编码完成后，不用你逐条手动验。`coded verify` 会**主动唤起 agent 去确认**你定义的自测用例和 checkpoint，再把结果自动写回契约：
+
+- **Phase 1（coded 直接跑）**：带 `--cmd` 的自测，coded 直接执行命令，按退出码自动判 pass/fail 并记录证据。
+- **Phase 2（唤起 agent）**：manual / 截图 / 需判断的自测，coded 组装确认 prompt，**headless 调用 `claude -p`**，解析它返回的结构化结果，自动回写每条 self-test 和 checkpoint 的状态。
+
+```bash
+coded verify                    # 默认 headless 唤起 verify agent，解析回写
+coded verify --interactive      # 改为交互式进入 agent 确认
+coded verify --print            # 只打印确认 prompt，不唤起
+```
+
+这样用户只需在契约里写清"怎么算对"，剩下的确认由 coded + agent 自动完成。
 
 想做更细的任务时，按需补充（全部可选）：
 

@@ -56,3 +56,34 @@ export function launchAgent(agent: Agent, prompt: string, force = false): Launch
     exitCode: res.status,
   };
 }
+
+export interface HeadlessResult {
+  ok: boolean;
+  available: boolean;
+  binary: string;
+  output: string;
+  error?: string;
+}
+
+// Run the agent non-interactively and capture its final response, so coded can
+// parse confirmation results back. Uses `claude -p` (print mode); other agents
+// fall back to unavailable until their headless flag is wired.
+export function runAgentHeadless(agent: Agent, prompt: string, timeoutMs = 1000 * 60 * 10): HeadlessResult {
+  const binary = BINARY[agent];
+  const found = which(binary);
+  if (!found) return { ok: false, available: false, binary, output: "" };
+
+  // Only claude has a verified print mode in V1.
+  const args = agent === "claude-code" ? ["-p", prompt] : [prompt];
+  const res = spawnSync(binary, args, { encoding: "utf8", timeout: timeoutMs });
+  if (res.error) {
+    return { ok: false, available: true, binary, output: res.stdout ?? "", error: res.error.message };
+  }
+  return {
+    ok: res.status === 0,
+    available: true,
+    binary,
+    output: res.stdout ?? "",
+    error: res.status === 0 ? undefined : res.stderr || `exit ${res.status}`,
+  };
+}

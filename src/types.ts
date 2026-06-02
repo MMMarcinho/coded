@@ -66,6 +66,9 @@ export interface SelfTest {
   name: string;
   type?: SelfTestType;
   required?: boolean;
+  // A shell command coded can run to verify this test automatically. When
+  // present, `coded verify` runs it and marks pass/fail by exit code.
+  command?: string;
   preconditions?: string[];
   steps?: string[];
   expectedResults?: string[];

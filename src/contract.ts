@@ -48,7 +48,7 @@ export function addSelfTest(
     required: opts.required ?? true,
     status: "unknown",
   };
-  if (opts.command) test.steps = [opts.command];
+  if (opts.command) test.command = opts.command;
   tests.push(test);
   return test;
 }

@@ -557,6 +557,13 @@ verify stage prompt 要求 Agent：
 - failure summary
 - suggested next stage: `fix | review | checkpoint | done`
 
+**V1 实现（无感自测）**：`coded verify` 分两段自动完成确认，让用户无需逐条手动验。
+
+1. **Phase 1**：带 `command` 的 self-test 由 coded 直接在项目根运行，按退出码写回 `passed | failed` 和证据。
+2. **Phase 2**：其余 self-test 和 checkpoint，coded 组装确认 prompt，**headless 唤起 agent（`claude -p`）**，解析其返回的结构化 `results` / `checkpoints` 块，自动写回每条状态。`--interactive` 改为交互式确认，`--print` 只打印 prompt。
+
+agent 报告 `inconclusive` 的条目保持原状不动；解析失败时保存 agent 原始回复供人工查看。
+
 ### 4.6 Agent-driven Checkpoint
 
 ```bash
