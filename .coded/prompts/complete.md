@@ -5,32 +5,23 @@ Task Contract, independently of how the work was done or how the implementer
 described it. coded does not care which path the agent took to get here — it
 cares whether the contract is satisfied.
 
-Go through the contract item by item:
+Go through the contract:
 
-- For each acceptance criterion, decide `met` / `unmet` / `waived`, and cite the
-  evidence that supports your call.
-- For each required verification check, report its status and the evidence.
-  Never mark a check `passed` without evidence.
-- The task is `done` only if every required check is `passed`, or explicitly
-  `waived` with a recorded reason.
+- For each `selfTest`, decide whether it passed, failed, or was not run, and
+  cite the evidence. Never mark a self-test passed without evidence.
+- Check the `doneCriteria`: required items must hold; flag anything that needs
+  user confirmation.
+- Compare the result against `goal` and `scope` — note anything missing or any
+  out-of-scope change.
 
-Return structured output:
+Return structured output (matches .coded/templates/completion.yaml):
 
 ```yaml
-contract_version:
-verdict: done | incomplete | done_with_waivers
-acceptance_criteria:
-  - id:
-    result: met | unmet | waived
-    evidence:
-checks:
-  - id:
-    status: passed | failed | waived | unknown
-    evidence:
-unmet:
-waivers:
-  - check_id:
-    reason:
-remaining_work:
+status: done | partially_done | not_done | blocked
+completed:
+failed_or_missing:
+evidence:
+risks:
+recommendation: finish | continue_fixing | needs_user_confirmation | split_follow_up
 summary:
 ```

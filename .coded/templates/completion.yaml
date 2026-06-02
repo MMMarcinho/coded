@@ -1,29 +1,13 @@
-# Completion Analysis — the item-by-item judgement against the contract.
-# Stored as .coded/runs/<task-id>/completion.yaml, produced by the complete stage.
-# This is intentionally separate from checkpoints: a checkpoint summarizes a
-# round, this judges the whole task against its contract.
-contractVersion: 1
-analyzedAt: ""
-verdict: incomplete      # done | incomplete | done_with_waivers
+# Completion Analysis — coded's judgement when the task ends. Not just
+# "done", but what was achieved, what is missing, the evidence, the risks, and
+# a recommendation. Stored as .coded/runs/<task-id>/completion.yaml.
+#
+# Shape matches SPEC §3.5 / the CompletionAnalysis data model.
 
-# One row per acceptance criterion in the contract.
-acceptanceCriteria:
-  - id: ac-1
-    result: unmet        # met | unmet | waived
-    evidence: []
-
-# One row per required verification check. A check is never "passed" without
-# evidence.
-checks:
-  - id: chk-1
-    status: unknown      # passed | failed | waived | unknown
-    evidence: ""
-
-unmet: []                # acceptance criteria / checks still blocking done
-waivers:                 # required checks the user explicitly excused
-  - checkId: ""
-    reason: ""
-    approvedBy: user
-
-remainingWork: []
+status: not_done           # done | partially_done | not_done | blocked
+completed: []              # goals / self-tests that are satisfied, with refs
+failedOrMissing: []        # what is unmet or absent
+evidence: []               # command results, manual checks, screenshots, review notes
+risks: []                  # remaining risks even if status is done
+recommendation: continue_fixing   # finish | continue_fixing | needs_user_confirmation | split_follow_up
 summary: ""

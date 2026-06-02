@@ -1,45 +1,54 @@
-# Task Contract — the anchor for a long-horizon task.
-# coded copies this into .coded/runs/<task-id>/contract.yaml when a task starts.
-# It is versioned: bump `version` and append to `amendments` on every change,
-# so checkpoints and the completion analysis can always say which contract
-# version they judged against.
-version: 1
-taskId: ""
-title: ""
-objective: ""            # what we are really trying to achieve, in one sentence
-scope:                   # what is in scope
-  - ""
-nonGoals:                # what is explicitly out of scope — the anti-drift guard
-  - ""
+# Task Contract — the most important structure coded builds before launching a
+# long-horizon task. It turns a one-line request into something the agent can
+# execute and the user can check. coded copies this into
+# .coded/runs/<task-id>/contract.yaml. In V1 the user fills it in by hand.
+#
+# Shape matches SPEC §3.2 / the TaskContract data model.
 
-# Acceptance criteria are the user-facing definition of done.
-# Each one links to the verification checks that prove it, so completion
-# analysis can check them item by item instead of guessing.
-acceptanceCriteria:
-  - id: ac-1
-    statement: ""
-    verifiedBy: []       # verification check ids that prove this criterion, e.g. [chk-1]
+goal:
+  summary: ""              # what this task is really trying to achieve, one line
+  userVisibleResults: []   # changes the user can perceive
+  deliverables: []         # concrete artifacts this task produces
+  successSignals: []       # external behavior when it works
 
-# Verification contract — "how do we know this is right". Define it before
-# implement, not after. Each check is addressable by id and carries its own
-# latest status + evidence.
-verification:
-  checks:
-    - id: chk-1
-      name: ""
-      type: test         # test | typecheck | lint | build | repro | screenshot | manual
-      command: ""        # command to run, or null for a manual check
-      manualProcedure: null
-      expectedSignal: "" # what output counts as pass, e.g. "exit 0"
-      requiredForDone: true
-      status: unknown    # unknown | passed | failed | waived
-      latestEvidence: null
-      waiverReason: null
+context:
+  reason: ""               # bug / feature / UX issue / tech debt
+  currentBehavior: null
+  relatedFiles: []
+  relatedModules: []
+  knownConstraints: []     # things the agent must not change
+  historicalNotes: []
 
-# Audit trail of every change to this contract. Drift that the user accepts
-# becomes an amendment instead of silent scope creep.
-amendments:
-  - version: 1
-    at: ""
-    reason: "initial contract"
-    changedBy: user      # user | agent
+scope:
+  in: []                   # what to do
+  out: []                  # what explicitly NOT to do — the anti-drift guard
+
+# Checkpoints are key-uncertainty stops, not progress logs (SPEC §3.3).
+checkpoints:
+  - id: cp-1
+    type: direction        # direction | scope | risk | integration | pre_submit | custom
+    name: ""
+    when: ""               # when to stop and confirm, e.g. "before editing code"
+    questions: []
+    expectedEvidence: []
+    status: pending        # pending | passed | failed | skipped
+    notes: ""
+
+# Self-tests are the user's acceptance cases (SPEC §3.4). Manual or mapped to
+# automated tests. These are how we know the change is right.
+selfTests:
+  - id: st-1
+    name: ""
+    type: manual           # manual | unit | integration | e2e | command | screenshot
+    required: true
+    preconditions: []
+    steps: []
+    expectedResults: []
+    latestEvidence: null
+    status: unknown        # unknown | passed | failed | skipped
+
+# Done criteria sit one level above self-tests: when can the task end? (SPEC §3.5)
+doneCriteria:
+  required: []
+  optional: []
+  requiresUserConfirmation: []

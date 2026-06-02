@@ -147,15 +147,81 @@ created -> exploring -> planned -> in_progress -> verifying -> done
 Task 拥有：
 
 - 标题和描述
-- 范围和非目标
-- 验收标准
+- Task Contract：目标、上下文、范围、非目标、约束
+- Checkpoint Plan：中途确认点
+- Self-test Plan：用户或 Agent 如何验证结果
+- Done Criteria：任务完成标准
+- Completion Analysis：任务结束后的完成度判断
 - 验证契约
 - 当前 Plan
 - Session 摘要和证据
 - 相关 Project Knowledge
 - 变更文件和产物引用
 
-### 3.2 Pipeline
+### 3.2 Task Contract
+
+Task Contract 是 coded 发起长程任务前最重要的结构。它把一句自然语言需求整理成 Agent 可以执行、用户可以检查的任务单。
+
+Task Contract 包含：
+
+- `goal`：任务目标、用户可见结果、交付物。
+- `context`：任务来源、当前现象、相关文件、已知约束。
+- `scope`：明确要做和不做的范围。
+- `checkpoints`：中途需要停下来确认的节点。
+- `selfTests`：用户或 Agent 应该如何验证结果。
+- `doneCriteria`：判断任务是否可以结束的标准。
+- `completionAnalysis`：任务结束后对完成度的结构化判断。
+
+V1 中这些内容主要由用户手动补充；未来接入 LLM provider 后，由 LLM 根据用户输入和项目知识生成草稿，用户确认后再进入 Agent 执行。
+
+### 3.3 Checkpoint Plan
+
+Checkpoint 是关键不确定性节点，不是普通进度日志。
+
+常见类型：
+
+- `direction`：方案方向确认。
+- `scope`：确认没有做超范围内容。
+- `risk`：确认关键风险已经消掉。
+- `integration`：确认依赖、配置、接口接上。
+- `pre_submit`：提交前最终检查。
+
+每个 checkpoint 应该包含：
+
+- 名称
+- 触发时机
+- 要回答的问题
+- 期望证据
+- 当前状态
+
+### 3.4 Self-test Plan
+
+Self-test 是用户定义的验收用例，可以是手动步骤，也可以映射到自动化测试。
+
+每条 self-test 至少包含：
+
+- 场景名称
+- 验证方式：`manual | unit | integration | e2e | command | screenshot`
+- 是否必需
+- 前置条件
+- 操作步骤
+- 期望结果
+- 最近一次验证证据
+
+### 3.5 Completion Analysis
+
+Completion Analysis 是任务结束时的判断报告。
+
+它不只回答“是否完成”，还要说明：
+
+- 哪些目标已完成
+- 哪些自测通过
+- 哪些内容缺失或失败
+- 有哪些证据
+- 有哪些遗留风险
+- 建议结束、继续修复、等待用户确认，还是拆后续任务
+
+### 3.6 Pipeline
 
 Pipeline 是一次 coded run 的阶段编排。
 
@@ -177,7 +243,7 @@ Pipeline 解决两个问题：
 - 把“写代码、验证、总结”拆成不同上下文，减少一个 Agent 自说自话。
 - 允许项目沉淀可复用策略，例如“Claude 实现，Codex 验证”或“UI 任务必须追加 screenshot review”。
 
-### 3.3 Stage
+### 3.7 Stage
 
 Stage 是 coded 发起的一次 Agent 子任务。
 
@@ -199,7 +265,7 @@ explore | plan | implement | verify | review | fix | checkpoint
 
 Stage 的输出必须尽量结构化，方便 coded 作为下一阶段输入。
 
-### 3.4 Plan
+### 3.8 Plan
 
 Plan 把 Task 拆成有顺序、有依赖、有检查方式的子任务。
 
@@ -230,7 +296,7 @@ pending | in_progress | verifying | done | skipped | blocked
 
 Plan 是活文档。每次修订都要保留版本，StageRun 需要知道自己基于哪个 Plan version 产生。
 
-### 3.5 Session / Agent Run
+### 3.9 Session / Agent Run
 
 Session 是一次真实的 Claude Code / Codex 对话；Agent Run 是 coded 发起并记录的一次 Stage 执行。V1 可以把一个 Stage 对应到一个 Session。
 
@@ -249,7 +315,7 @@ explore | plan | implement | verify | review | fix | checkpoint
 
 关键设计：coded 不依赖 Claude Code / Codex 的内部工具调用细节。它只记录对后续有价值的结果：stage 输入、stage 输出、改了哪些文件、跑了哪些命令、检查是否通过、做了什么决策、还剩什么风险。
 
-### 3.6 Context Pack
+### 3.10 Context Pack
 
 Context Pack 是每次 Session 开始前生成的 prompt 产物。
 
@@ -274,51 +340,44 @@ full       包含更多历史和决策依据
 review     面向新上下文评审，减少实现者偏见
 ```
 
-### 3.7 Verification Contract
+### 3.11 Verification Contract
 
-Verification Contract 定义“完成”的可检查标准，也就是用户口中的“自测用例”。它是任务契约里最硬的部分，应该在 implement **之前**就写好，而不是做完再补。
+Verification Contract 定义“完成”的可检查标准。在 coded 的模型里，它就是 Task Contract 的 `selfTests`（见 3.4）加上 `doneCriteria`（见 3.5）——“自测用例”是验证机制本身，不另起一套 check 体系。它应该在 implement **之前**就写好，而不是做完再补。
 
-每个 check 都是**可寻址的条目**（有 `id`），这样 checkpoint 和完成度判定能逐条引用、逐条判定，而不是对一段文字做整体猜测。
+每条 self-test 都是**可寻址的条目**（有 `id`），这样 checkpoint 和完成度判定能逐条引用、逐条判定，而不是对一段文字做整体猜测。每条至少包含：
 
-字段：
-
-- `id`：稳定标识，例如 `chk-1`
+- `id`：稳定标识，例如 `st-1`
 - `name`
-- `type`：`test | typecheck | lint | build | repro | screenshot | manual`
-- `command` 或 `manualProcedure`
-- `expectedSignal`：什么输出算通过
-- `requiredForDone`
-- `status`：`unknown | passed | failed | waived`
+- `type`：`manual | unit | integration | e2e | command | screenshot`
+- `required`
+- `preconditions` / `steps` / `expectedResults`
+- `status`：`unknown | passed | failed | skipped`
 - `latestEvidence`
-- `waiverReason`
 
-验收标准（acceptance criteria）通过 `verifiedBy` 引用具体 check id，把“用户视角的完成”和“可执行的检查”绑定起来：
+示例：
 
 ```yaml
-acceptanceCriteria:
-  - id: ac-1
-    statement: 登录接口返回 JWT，且不再写 session
-    verifiedBy: [chk-1, chk-3]
+selfTests:
+  - id: st-1
+    name: auth unit tests
+    type: unit
+    required: true
+    steps:
+      - npm test -- auth
+    expectedResults:
+      - exit 0
+    status: unknown
+    latestEvidence: null
 
-verification:
-  checks:
-    - id: chk-1
-      name: auth unit tests
-      type: test
-      command: npm test -- auth
-      expectedSignal: exit 0
-      requiredForDone: true
-    - id: chk-3
-      name: typecheck
-      type: typecheck
-      command: npm run typecheck
-      expectedSignal: exit 0
-      requiredForDone: true
+doneCriteria:
+  required:
+    - 所有 required self-test 通过
+    - 没有改动 out-of-scope 模块
 ```
 
 完整结构见 `.coded/templates/contract.yaml`。
 
-### 3.8 Evidence
+### 3.12 Evidence
 
 Evidence 是证明进展或验证结果的紧凑事实：
 
@@ -332,7 +391,7 @@ Evidence 是证明进展或验证结果的紧凑事实：
 
 Evidence 应该独立于摘要存储，避免以后再让 LLM 从长文本中重新推断事实。
 
-### 3.9 Project Knowledge / Memory
+### 3.13 Project Knowledge / Memory
 
 Project Knowledge / Memory 是仓库维度跨 Task 复用的知识，默认保存在 `.coded/knowledge/`。
 
@@ -352,7 +411,7 @@ Memory 生命周期：
 4. Context Builder 只召回和当前 Task 相关的 Project Knowledge。
 5. 过期、矛盾或低价值 Memory 可删除或降权。
 
-### 3.10 Workflow
+### 3.14 Workflow
 
 Workflow 是项目级可复用流程，保存在 `.coded/workflows/`。
 
@@ -376,43 +435,17 @@ stages:
 
 Workflow 可以由用户手写，也可以由 checkpoint stage 提议沉淀。
 
-### 3.11 Task Contract
+### 3.15 Drift Check
 
-Task Contract 是一次长程任务的**锚**。它把“我要什么、怎么算对”固化成一份结构化、可版本化的文件，全程约束任务，不应随研发过程悄悄漂移。
+Drift Check 是 checkpoint stage 的核心职责之一，专门对抗长程任务“做着做着跑偏”的失败模式。Codex 的核心模型里没有它，coded 把它作为 checkpoint 的固定一环。
 
-Task Contract 持久化为 `.coded/runs/<task-id>/contract.yaml`（模板见 `.coded/templates/contract.yaml`），包含：
-
-- `objective`：这次到底要完成什么。
-- `scope` / `nonGoals`：哪些做，哪些明确不做。`nonGoals` 是防 scope creep 的护栏。
-- `acceptanceCriteria`：用户视角的完成定义，每条通过 `verifiedBy` 关联到具体 check id。
-- `verification.checks`：可寻址的自测用例（见 3.7）。
-- `amendments`：契约的修订审计。用户认可的方向调整应该变成一次显式 amendment（`version` 自增），而不是无声的范围蔓延。
-
-关键设计：契约先于实现确立；任何 stage 都基于某个 `contract version` 运行，checkpoint 和完成度判定也要记录自己判的是哪个版本。
-
-### 3.12 Drift Check
-
-Drift Check 是 checkpoint stage 的核心职责之一，专门对抗长程任务“做着做着跑偏”的失败模式。
-
-每次 checkpoint 都拿本轮结果对照 Task Contract（objective / scope / nonGoals），输出：
+每次 checkpoint 都拿本轮结果对照 Task Contract（goal / scope / nonGoals），输出：
 
 - `status`：`on_track | drifting | scope_changed`
 - `findings`：具体观察，例如“改动触及计费模块，超出 scope”
 - `recommendation`：`continue | revise_plan | amend_contract`
 
-coded 不替用户决定如何处理漂移，但它必须让漂移**变得可见**：要么修正回契约，要么把契约显式 amend 掉。
-
-### 3.13 Completion Analysis
-
-Completion Analysis 是任务收尾时一次**独立于研发过程**的完成度判定，持久化为 `.coded/runs/<task-id>/completion.yaml`（模板见 `.coded/templates/completion.yaml`）。
-
-它逐条对照 Task Contract：
-
-- 每条 `acceptanceCriteria` 判 `met | unmet | waived`，并附证据。
-- 每个 required check 报告 `status` 和证据；没有证据不得标 `passed`。
-- 只有所有 required check `passed`，或被用户显式 `waived` 并记录原因，`verdict` 才能是 `done`。
-
-Completion Analysis 和 checkpoint 的区别：checkpoint 总结一轮、防漂移；Completion Analysis 判整个任务对照契约是否真的完成。它正是 coded 最想稳定交付的“最重要的结果”。
+coded 不替用户决定如何处理漂移，但它必须让漂移**变得可见**：要么修正回契约，要么把契约显式 amend 掉（contract 的 `amendments`）。
 
 ---
 
@@ -572,8 +605,8 @@ $ coded done [task-id]
 
 流程：
 
-1. 运行或读取最近一次 Completion Analysis（见 4.9），确认 `verdict` 为 `done` 或 `done_with_waivers`。
-2. 必需检查必须 `passed`，或已有显式 waiver 和原因。
+1. 运行或读取最近一次 Completion Analysis（见 4.9），确认 `status` 为 `done`，或在用户确认遗留项后接受 `partially_done`。
+2. 必需 self-test 必须 `passed`，或已有显式 waiver 和原因。
 3. 标记 Task 为 `done`。
 4. 生成 final summary。
 5. 提议 Project Knowledge candidates。
@@ -604,9 +637,10 @@ coded 发起 completion stage，让 Agent 对照 Task Contract 做一次**逐条
 
 completion stage prompt 要求 Agent：
 
-- 逐条 acceptance criterion 判 `met | unmet | waived`，附证据。
-- 逐个 required check 报告 `status` 和证据，没有证据不得标 `passed`。
-- 给出 `verdict`：`done | incomplete | done_with_waivers`，并列出 unmet 项和 waivers。
+- 逐条 self-test 判定通过 / 失败 / 未跑，附证据，没有证据不得标通过。
+- 核对 done criteria：required 项必须满足，需要用户确认的项要单独标出。
+- 对照 goal 和 scope，指出缺失项和任何超范围改动。
+- 给出 `status`（`done | partially_done | not_done | blocked`）和 `recommendation`（`finish | continue_fixing | needs_user_confirmation | split_follow_up`）。
 
 判定独立于实现叙述：coded 不关心 Agent 用什么路径做出来，只关心契约是否被满足。`coded done` 以这份分析为准。
 
@@ -655,17 +689,17 @@ coded prompt [task-id] [--mode standard]
 
 # Contract
 coded contract [task-id]                       # show the task contract
-coded contract edit [task-id]                  # edit goal / scope / non-goals / acceptance criteria
+coded contract edit [task-id]                  # edit goal / context / scope / checkpoints / self-tests / done criteria
 coded contract amend [task-id] "<reason>"      # bump contract version with an audit reason
 
 # Verification / Review / Completion
 coded verify [task-id]
 coded review [task-id]
-coded complete [task-id]                        # item-by-item completion analysis vs contract
-coded check add [task-id] "<name>" --type test --cmd "<command>"
-coded check pass <check-id> "<evidence>"
-coded check fail <check-id> "<evidence>"
-coded check waive <check-id> "<reason>"
+coded complete [task-id]                              # completion analysis vs contract
+coded selftest add [task-id] "<name>" --type unit --cmd "<command>"
+coded selftest pass <selftest-id> "<evidence>"
+coded selftest fail <selftest-id> "<evidence>"
+coded selftest skip <selftest-id> "<reason>"
 
 # Project Knowledge
 coded knowledge list
@@ -711,6 +745,82 @@ type SessionIntent =
 
 type StageKind = SessionIntent;
 
+type SelfTestType = "manual" | "unit" | "integration" | "e2e" | "command" | "screenshot";
+
+type CheckpointType = "direction" | "scope" | "risk" | "integration" | "pre_submit" | "custom";
+
+interface TaskContract {
+  goal: TaskGoal;
+  context: TaskContext;
+  scope: TaskScope;
+  checkpoints: Checkpoint[];
+  selfTests: SelfTestCase[];
+  doneCriteria: DoneCriteria;
+}
+
+interface TaskGoal {
+  summary: string;
+  userVisibleResults: string[];
+  deliverables: string[];
+  successSignals: string[];
+}
+
+interface TaskContext {
+  reason: string;
+  currentBehavior: string | null;
+  relatedFiles: string[];
+  relatedModules: string[];
+  knownConstraints: string[];
+  historicalNotes: string[];
+}
+
+interface TaskScope {
+  in: string[];
+  out: string[];
+}
+
+interface Checkpoint {
+  id: string;
+  taskId: string;
+  type: CheckpointType;
+  name: string;
+  when: string;
+  questions: string[];
+  expectedEvidence: string[];
+  status: "pending" | "passed" | "failed" | "skipped";
+  notes: string;
+}
+
+interface SelfTestCase {
+  id: string;
+  taskId: string;
+  name: string;
+  type: SelfTestType;
+  required: boolean;
+  preconditions: string[];
+  steps: string[];
+  expectedResults: string[];
+  latestEvidenceId: string | null;
+  status: "unknown" | "passed" | "failed" | "skipped";
+}
+
+interface DoneCriteria {
+  required: string[];
+  optional: string[];
+  requiresUserConfirmation: string[];
+}
+
+interface CompletionAnalysis {
+  taskId: string;
+  status: "done" | "partially_done" | "not_done" | "blocked";
+  completed: string[];
+  failedOrMissing: string[];
+  evidenceIds: string[];
+  risks: string[];
+  recommendation: "finish" | "continue_fixing" | "needs_user_confirmation" | "split_follow_up";
+  createdAt: Date;
+}
+
 interface Pipeline {
   id: string;
   name: string;
@@ -735,9 +845,11 @@ interface Task {
   id: string;
   title: string;
   description: string;
+  contract: TaskContract;
   scope: string[];
   nonGoals: string[];
   acceptanceCriteria: string[];
+  completionAnalysis: CompletionAnalysis | null;
   status: TaskStatus;
   currentPlanId: string | null;
   activeSubtaskId: string | null;
@@ -837,33 +949,9 @@ interface VerificationCheck {
   updatedAt: Date;
 }
 
-// The contract is the anchor for a long-horizon task. It is versioned and
-// persisted as .coded/runs/<task-id>/contract.yaml.
-interface AcceptanceCriterion {
-  id: string;
-  statement: string;
-  verifiedBy: string[]; // VerificationCheck ids
-}
-
-interface ContractAmendment {
-  version: number;
-  at: Date;
-  reason: string;
-  changedBy: "user" | "agent";
-}
-
-interface TaskContract {
-  taskId: string;
-  version: number;
-  objective: string;
-  scope: string[];
-  nonGoals: string[];
-  acceptanceCriteria: AcceptanceCriterion[];
-  checkIds: string[]; // VerificationCheck ids in this contract
-  amendments: ContractAmendment[];
-}
-
 // Produced by a checkpoint stage; guards against losing focus over a long task.
+// This is coded's addition on top of the Task Contract / Completion Analysis
+// model defined above.
 interface DriftAssessment {
   id: string;
   taskId: string;
@@ -873,28 +961,6 @@ interface DriftAssessment {
   findings: string[];
   recommendation: "continue" | "revise_plan" | "amend_contract";
   createdAt: Date;
-}
-
-// Produced by a complete stage; item-by-item verdict against the contract.
-interface CompletionAnalysis {
-  id: string;
-  taskId: string;
-  contractVersion: number;
-  verdict: "done" | "incomplete" | "done_with_waivers";
-  criteriaResults: {
-    criterionId: string;
-    result: "met" | "unmet" | "waived";
-    evidenceIds: string[];
-  }[];
-  checkResults: {
-    checkId: string;
-    status: "passed" | "failed" | "waived" | "unknown";
-    evidenceId: string | null;
-  }[];
-  unmet: string[];
-  waivers: { checkId: string; reason: string; approvedBy: "user" }[];
-  summary: string;
-  analyzedAt: Date;
 }
 
 interface Evidence {
@@ -979,10 +1045,21 @@ interface ProjectConfig {
 ## Task
 - Title: {task.title}
 - Status: {task.status}
-- Objective: {task.description}
-- Scope: {scope}
-- Non-goals: {nonGoals}
-- Acceptance criteria: {acceptanceCriteria}
+- Goal: {task.contract.goal.summary}
+- User-visible results: {task.contract.goal.userVisibleResults}
+- Deliverables: {task.contract.goal.deliverables}
+- Context: {task.contract.context}
+- Scope in: {task.contract.scope.in}
+- Scope out: {task.contract.scope.out}
+
+## Checkpoints
+{pending and relevant checkpoints with questions and expected evidence}
+
+## Self-test Plan
+{required self-tests, expected results, latest status}
+
+## Done Criteria
+{required criteria and user-confirmation items}
 
 ## Stage
 - Kind: {stage.kind}
@@ -1062,13 +1139,13 @@ interface ProjectConfig {
     completion.yaml
   runs/                          # 默认 gitignored，保存每次任务的运行产物
     <task-id>/
-      contract.yaml              # 任务契约（目标/范围/非目标/验收标准/验证契约）
+      contract.yaml              # 任务契约（goal/context/scope/checkpoints/selfTests/doneCriteria）
       implement.output.md
       verify.output.md
       checkpoints/
         1.yaml                   # 每轮 checkpoint 快照，含 drift assessment
         2.yaml
-      completion.yaml            # 逐条对照契约的完成度判定
+      completion.yaml            # 对照契约的完成度判定（status + recommendation）
       evidence.json
   candidates/
     knowledge/

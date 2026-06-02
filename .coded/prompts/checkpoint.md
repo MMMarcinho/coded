@@ -5,11 +5,12 @@ compress, check for drift against the contract, and propose reusable knowledge.
 It does not review how the work was implemented — that is the agent's own
 concern — it protects the contract.
 
-1. **Compress** this round into reusable state: facts, evidence, decisions,
-   unresolved risks, and the next useful step. Reference paths and commands,
-   not full transcripts.
+1. **Compress** this round into reusable state: facts, checkpoint status,
+   self-test status, done-criteria status, evidence, decisions, unresolved
+   risks, and the next useful step. Reference paths and commands, not full
+   transcripts.
 2. **Check for drift**: compare what was just done against the Task Contract
-   (objective, scope, non-goals). Decide whether the task is still on track, is
+   (goal, scope, non-goals). Decide whether the task is still on track, is
    drifting, or has effectively changed scope. Recommend continuing, revising
    the plan, or amending the contract. This is the guard against losing focus
    over a long task.
@@ -21,6 +22,9 @@ Return structured output:
 ```yaml
 contract_version:
 completed:
+checkpoint_status:
+self_test_status:
+done_criteria_status:
 evidence:
 decisions:
 remaining:

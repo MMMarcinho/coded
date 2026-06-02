@@ -20,8 +20,8 @@ coded is a task runner and orchestration layer for Claude Code and Codex. It lau
 
 coded owns the result layer of a long-horizon task, not the development path:
 
-- Task Contract (`.coded/templates/contract.yaml`): goal, scope, non-goals, acceptance criteria, and the verification contract (self-test cases). This is the anchor.
+- Task Contract (`.coded/templates/contract.yaml`): goal, context, scope, checkpoints, self-tests, and done criteria. This is the anchor.
 - Checkpoint (`.coded/templates/checkpoint.yaml`): compresses a round and runs a drift check against the contract.
-- Completion Analysis (`.coded/templates/completion.yaml`): item-by-item verdict against the contract.
+- Completion Analysis (`.coded/templates/completion.yaml`): status + recommendation judged against the contract.
 
 How the agent actually explores and implements is deliberately left open — that is Claude Code / Codex's job.
