@@ -10,7 +10,7 @@ import {
 } from "../contract.js";
 import { pendingForAgent, runCommandSelfTests } from "../runner.js";
 import { buildConfirmPrompt, parseAgentResults, toSelfTestStatus } from "../confirm.js";
-import { launchAgent, resolveAgent, runAgentHeadless } from "../launch.js";
+import { chooseVerifyAgent, launchAgent, runAgentHeadless } from "../launch.js";
 import type { ContractCheckpoint } from "../types.js";
 
 export interface VerifyOptions {
@@ -53,7 +53,16 @@ export function cmdVerify(taskRef: string | undefined, opts: VerifyOptions): voi
   mkdirSync(packsDir, { recursive: true });
   const packPath = join(packsDir, `confirm-${stamp()}.md`);
   writeFileSync(packPath, prompt);
-  const agent = resolveAgent(opts.agent ?? config.defaultAgents?.verify);
+
+  // Pick the verifying agent intentionally — cross-check against whoever
+  // implemented, and announce the choice.
+  const choice = chooseVerifyAgent({
+    explicit: opts.agent,
+    implementAgent: meta.implementAgent,
+    configVerifyAgent: config.defaultAgents?.verify,
+  });
+  const agent = choice.agent;
+  console.log(`Verify agent: ${agent} (${choice.reason}).`);
 
   if (opts.print) {
     console.log("\n" + prompt);
@@ -72,8 +81,14 @@ export function cmdVerify(taskRef: string | undefined, opts: VerifyOptions): voi
   console.log(`\nAsking ${agent} to confirm ${pending.length} item(s)…`);
   const head = runAgentHeadless(agent, prompt);
   if (!head.available) {
-    console.log(`Agent '${head.binary}' not found — printing the confirm prompt instead:\n`);
-    console.log(prompt);
+    const other = agent === "codex" ? "claude-code" : "codex";
+    console.error(`Verify agent '${head.binary}' is not installed.`);
+    console.error(`Options (coded won't silently switch agents):`);
+    console.error(`  - install ${head.binary} for the independent angle, or`);
+    console.error(`  - \`coded verify --agent ${other}\` to verify with ${other} (same as implementer — weaker check), or`);
+    console.error(`  - \`coded verify --print\` to confirm manually.`);
+    console.error(`\nConfirm prompt saved to ${packPath}.`);
+    process.exitCode = 1;
     return;
   }
   if (!head.ok && !head.output) {

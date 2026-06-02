@@ -17,6 +17,38 @@ export function resolveAgent(name?: string): Agent {
   throw new Error(`Unknown agent '${name}'. Use claude-code or codex.`);
 }
 
+// The other agent — used to verify/review with a different perspective than
+// the one that implemented (cross-checking is intentional, not a fallback).
+export function otherAgent(a: Agent): Agent {
+  return a === "claude-code" ? "codex" : "claude-code";
+}
+
+export interface AgentChoice {
+  agent: Agent;
+  reason: string;
+}
+
+// Pick the agent that should confirm/verify. Explicit choice wins. Otherwise
+// cross-check against whoever implemented. This is deliberately "有感": coded
+// announces the choice and never silently swaps to a different agent.
+export function chooseVerifyAgent(args: {
+  explicit?: string;
+  implementAgent?: Agent;
+  configVerifyAgent?: Agent;
+}): AgentChoice {
+  if (args.explicit) {
+    return { agent: resolveAgent(args.explicit), reason: "explicitly chosen" };
+  }
+  if (args.implementAgent) {
+    const agent = otherAgent(args.implementAgent);
+    return { agent, reason: `implement used ${args.implementAgent} → cross-checking with ${agent} for an independent angle` };
+  }
+  if (args.configVerifyAgent) {
+    return { agent: args.configVerifyAgent, reason: "from config defaultAgents.verify" };
+  }
+  return { agent: "claude-code", reason: "default" };
+}
+
 // Find an executable on PATH without extra dependencies.
 export function which(bin: string): string | null {
   const path = process.env.PATH ?? "";

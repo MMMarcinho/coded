@@ -60,6 +60,8 @@ export function cmdPrompt(taskRef: string | undefined, opts: PromptOptions): voi
   writeFileSync(packPath, pack.content);
 
   const agent = resolveAgent(opts.agent ?? config.defaultAgents?.[stage]);
+  // Remember who implemented, so verify/review can cross-check with the other.
+  if (stage === "implement") meta.implementAgent = agent;
   console.error(`Context pack: ${pack.charCount} chars (~${pack.tokenEstimate} tokens) -> ${packPath}`);
 
   const result = opts.print

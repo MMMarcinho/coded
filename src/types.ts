@@ -106,6 +106,9 @@ export interface TaskMeta {
   title: string;
   status: TaskStatus;
   workflow: string;
+  // The agent that implemented this task, so verify/review can cross-check with
+  // the other agent for an independent perspective.
+  implementAgent?: Agent;
   createdAt: string;
   updatedAt: string;
   history: TaskEvent[];
