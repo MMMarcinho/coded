@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { accessSync, constants as fsConstants, existsSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
 import type { Agent } from "./types.js";
 
@@ -8,6 +9,67 @@ const BINARY: Record<Agent, string> = {
   "claude-code": "claude",
   codex: "codex",
 };
+
+const isWin = process.platform === "win32";
+
+// On Windows npm installs CLIs as .cmd/.exe shims; try those too.
+function binaryCandidates(name: string): string[] {
+  return isWin ? [`${name}.cmd`, `${name}.exe`, `${name}.bat`, name] : [name];
+}
+
+// Search dirs beyond PATH where agent CLIs commonly live. GUI-launched
+// processes (and some shells) get a stripped PATH that misses these — the same
+// problem multica fixes for its daemon. Cheap to check, prevents false
+// "not installed" reports.
+function searchDirs(): string[] {
+  const fromPath = (process.env.PATH ?? "").split(delimiter).filter(Boolean);
+  const extra: string[] = [];
+  const home = homedir();
+  if (isWin) {
+    if (process.env.APPDATA) extra.push(join(process.env.APPDATA, "npm"));
+    extra.push(join(home, ".bun", "bin"));
+  } else {
+    extra.push(
+      "/opt/homebrew/bin",
+      "/usr/local/bin",
+      "/usr/bin",
+      join(home, ".local", "bin"),
+      join(home, ".bun", "bin"),
+      join(home, ".npm-global", "bin"),
+      join(home, ".volta", "bin"),
+    );
+  }
+  // PATH first (respect user's choice), then the well-known fallbacks.
+  return [...fromPath, ...extra];
+}
+
+function isExecutableFile(p: string): boolean {
+  try {
+    if (!statSync(p).isFile()) return false;
+    if (!isWin) accessSync(p, fsConstants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Resolve an agent binary to an absolute path, or null if not found.
+export function findBinary(name: string): string | null {
+  for (const dir of searchDirs()) {
+    for (const cand of binaryCandidates(name)) {
+      const full = join(dir, cand);
+      if (existsSync(full) && isExecutableFile(full)) return full;
+    }
+  }
+  return null;
+}
+
+// Env handed to every agent child: inherit, but make sure the well-known dirs
+// are on PATH (so the agent can find node/git/etc.) and mark who spawned it.
+function spawnEnv(): NodeJS.ProcessEnv {
+  const merged = [...new Set(searchDirs())].join(delimiter);
+  return { ...process.env, PATH: merged, CODED_LAUNCHED_BY: "coded" };
+}
 
 export function resolveAgent(name?: string): Agent {
   if (!name) return "claude-code";
@@ -49,15 +111,9 @@ export function chooseVerifyAgent(args: {
   return { agent: "claude-code", reason: "default" };
 }
 
-// Find an executable on PATH without extra dependencies.
+// Back-compat alias; resolves an agent binary name to a path.
 export function which(bin: string): string | null {
-  const path = process.env.PATH ?? "";
-  for (const dir of path.split(delimiter)) {
-    if (!dir) continue;
-    const full = join(dir, bin);
-    if (existsSync(full)) return full;
-  }
-  return null;
+  return findBinary(bin);
 }
 
 export interface LaunchResult {
@@ -72,7 +128,7 @@ export interface LaunchResult {
 // the binary is missing or stdout is not a TTY.
 export function launchAgent(agent: Agent, prompt: string, force = false): LaunchResult {
   const binary = BINARY[agent];
-  const found = which(binary);
+  const found = findBinary(binary);
   const available = found != null;
   const interactive = Boolean(process.stdout.isTTY) || force;
 
@@ -80,7 +136,13 @@ export function launchAgent(agent: Agent, prompt: string, force = false): Launch
     return { launched: false, binary, available, exitCode: null };
   }
 
-  const res = spawnSync(binary, [prompt], { stdio: "inherit" });
+  // Spawn the resolved absolute path with a curated env; the prompt is the
+  // opening argument. Interactive prompts are small enough for argv.
+  const res = spawnSync(found, [prompt], {
+    stdio: "inherit",
+    env: spawnEnv(),
+    windowsHide: true,
+  });
   return {
     launched: true,
     binary,
@@ -100,16 +162,36 @@ export interface HeadlessResult {
 // Run the agent non-interactively and capture its final response, so coded can
 // parse confirmation results back. Uses `claude -p` (print mode); other agents
 // fall back to unavailable until their headless flag is wired.
+//
+// The prompt is piped via stdin rather than passed as an argv string: it can be
+// large (full contract + context) and may contain characters that are awkward
+// to escape on a command line.
 export function runAgentHeadless(agent: Agent, prompt: string, timeoutMs = 1000 * 60 * 10): HeadlessResult {
   const binary = BINARY[agent];
-  const found = which(binary);
+  const found = findBinary(binary);
   if (!found) return { ok: false, available: false, binary, output: "" };
 
-  // Only claude has a verified print mode in V1.
-  const args = agent === "claude-code" ? ["-p", prompt] : [prompt];
-  const res = spawnSync(binary, args, { encoding: "utf8", timeout: timeoutMs });
+  // Only claude has a verified print mode in V1; `claude -p` reads the prompt
+  // from stdin when no prompt argument is given.
+  const args = agent === "claude-code" ? ["-p"] : [];
+  const res = spawnSync(found, args, {
+    input: prompt,
+    encoding: "utf8",
+    timeout: timeoutMs,
+    killSignal: "SIGTERM",
+    maxBuffer: 64 * 1024 * 1024,
+    env: spawnEnv(),
+    windowsHide: true,
+  });
   if (res.error) {
-    return { ok: false, available: true, binary, output: res.stdout ?? "", error: res.error.message };
+    const timedOut = (res.error as NodeJS.ErrnoException).code === "ETIMEDOUT";
+    return {
+      ok: false,
+      available: true,
+      binary,
+      output: res.stdout ?? "",
+      error: timedOut ? `timed out after ${Math.round(timeoutMs / 1000)}s` : res.error.message,
+    };
   }
   return {
     ok: res.status === 0,
