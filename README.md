@@ -28,6 +28,65 @@ coded 关注一次研发任务的完整生命周期：
 
 这个阶段的设计目标是先把“什么是一段好的研发任务上下文”打磨清楚，而不是过早自动化。
 
+## V1 CLI
+
+当前仓库已经有一个 TypeScript CLI，用来跑通手动任务闭环。
+
+```bash
+npm install
+npm run build
+npm test
+npm run dev -- init
+npm run dev -- new
+```
+
+`coded new` 不带标题时会进入交互式任务创建流程。对于 checkpoint、self-test、done criteria 这类列表型内容，输入规则是：
+
+```text
+checkpoint 1: 方案确认
+checkpoint 2: 提交前检查
+checkpoint 3:
+```
+
+每输入一项并回车，就创建一个条目；空内容回车表示这一组输入结束。
+
+也可以用参数方式创建任务，适合脚本或快速记录：
+
+```bash
+npm run dev -- new "登录失败错误提示优化" \
+  --goal "登录失败时展示更明确的错误提示"
+```
+
+任务会保存到：
+
+```text
+.coded/runs/<task-id>/task.json
+.coded/runs/<task-id>/contract.yaml
+```
+
+记录 checkpoint：
+
+```bash
+npm run dev -- checkpoint <task-id> --print
+```
+
+记录自测结果：
+
+```bash
+npm run dev -- selftest pass st-1 \
+  "手动验证密码错误时页面显示账号或密码错误" \
+  --task <task-id>
+```
+
+生成完成分析：
+
+```bash
+npm run dev -- complete <task-id> --print
+npm run dev -- done <task-id>
+```
+
+V1 的实现保持轻量：用 `.coded/runs/<task-id>/` 保存任务元数据和 `contract.yaml`，让用户先把任务结构、checkpoint、自测和完成分析跑通。等任务结构稳定后，再把更多补全、分析和 Agent 发起能力逐步接进来。
+
 ## 未来方向
 
 未来 coded 会支持接入 LLM provider，让 LLM 帮助用户完成更多任务补全工作：

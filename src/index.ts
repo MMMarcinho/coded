@@ -30,7 +30,7 @@ program
 
 program
   .command("new")
-  .argument("<title>", "task title (also used as the goal)")
+  .argument("[title]", "task title (also used as the goal); omit for interactive wizard")
   .option("-w, --workflow <name>", "workflow to attach")
   .option("-g, --goal <text>", "goal summary (defaults to the title)")
   .description("Create a new task, ready to run with zero editing.")
@@ -141,9 +141,9 @@ program
 
 program.parseAsync(process.argv);
 
-function run(fn: () => void): void {
+async function run(fn: () => void | Promise<void>): Promise<void> {
   try {
-    fn();
+    await fn();
   } catch (err) {
     console.error(`coded: ${(err as Error).message}`);
     process.exitCode = 1;
