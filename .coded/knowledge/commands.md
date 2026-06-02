@@ -1,11 +1,13 @@
 # Commands
 
-This repository currently has no package manifest or automated test command.
-
-Useful checks for documentation/spec changes:
+Confirmed to work in this repository:
 
 ```bash
-git diff --check
+npm install            # install deps
+npm run build          # tsc -> dist/  (also serves as the typecheck)
+npm test               # vitest run (unit tests)
+npm run dev -- <args>  # run the CLI from source via tsx
+git diff --check       # whitespace check for docs/spec changes
 ```
 
-When implementation code is added later, update this file with install, test, typecheck, lint, and build commands confirmed to work in this repository.
+There is no separate lint step yet.

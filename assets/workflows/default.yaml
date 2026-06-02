@@ -1,0 +1,15 @@
+name: default
+description: Default coded pipeline for ordinary coding tasks.
+stages:
+  - kind: implement
+    agent: claude-code
+    prompt: .coded/prompts/implement.md
+    required: true
+  - kind: verify
+    agent: codex
+    prompt: .coded/prompts/verify.md
+    required: true
+  - kind: checkpoint
+    agent: claude-code
+    prompt: .coded/prompts/checkpoint.md
+    required: true

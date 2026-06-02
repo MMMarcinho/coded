@@ -227,3 +227,41 @@ completion_analysis:
 ```
 
 当这些内容足够清楚时，Claude Code、Codex 或其他 Agent 才更容易稳定地完成长程研发任务。coded 的产品核心就是持续追问三个问题：你要做什么，中途怎么知道没有跑偏，最后怎么知道真的做完了。
+
+## 初版 CLI
+
+仓库现在带有一个可运行的初版 CLI（TypeScript + Node）。它专注于结果层：把任务整理成契约、生成可丢给 Agent 的 prompt、记录 checkpoint 和完成度。它**不**规定研发路径，也不自动改你的代码——实际开发仍由 Claude Code / Codex 完成。
+
+```bash
+npm install
+npm run build      # 编译到 dist/
+npm test           # 运行 vitest
+
+# 在任意仓库里使用（用 node 直接跑，或 npm link 成全局 coded 命令）
+node /path/to/coded/dist/index.js <command>
+```
+
+核心闭环 **契约 → prompt**：
+
+```bash
+coded init                                  # 在当前仓库创建 .coded/（含模板和 prompt）
+coded new "把登录错误提示做细"               # 生成 .coded/runs/<id>/contract.yaml
+# 手动填写 contract.yaml 的 goal / scope / selfTests / doneCriteria
+coded prompt --stage implement              # 组装 Context Pack 并启动 claude（缺失则打印 prompt）
+coded prompt --stage implement --print      # 只打印，不启动
+```
+
+发起后续阶段与记录结果：
+
+```bash
+coded status                                # 查看契约、self-test 状态、最近 checkpoint 的 drift
+coded list                                  # 列出所有任务
+coded checkpoint --record cp.yaml           # 记录一次 checkpoint 快照（含 drift）
+coded complete  --record done.yaml          # 记录完成度分析；status: done 时自动结束任务
+```
+
+设计取舍（初版）：
+
+- **存储用文件系统**，不用数据库：`.coded/runs/<id>/` 下的 yaml 人可读、可 diff、可 review。
+- **发起优先启动 Agent**：检测到 `claude` / `codex` 且在终端里时直接启动，否则回退打印 prompt 和等价命令。
+- **不接 LLM**：契约由用户填，coded 负责组织上下文、校验、生成 prompt、记录结果。
