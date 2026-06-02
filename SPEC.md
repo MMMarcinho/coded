@@ -135,15 +135,81 @@ created -> exploring -> planned -> in_progress -> verifying -> done
 Task 拥有：
 
 - 标题和描述
-- 范围和非目标
-- 验收标准
+- Task Contract：目标、上下文、范围、非目标、约束
+- Checkpoint Plan：中途确认点
+- Self-test Plan：用户或 Agent 如何验证结果
+- Done Criteria：任务完成标准
+- Completion Analysis：任务结束后的完成度判断
 - 验证契约
 - 当前 Plan
 - Session 摘要和证据
 - 相关 Project Knowledge
 - 变更文件和产物引用
 
-### 3.2 Pipeline
+### 3.2 Task Contract
+
+Task Contract 是 coded 发起长程任务前最重要的结构。它把一句自然语言需求整理成 Agent 可以执行、用户可以检查的任务单。
+
+Task Contract 包含：
+
+- `goal`：任务目标、用户可见结果、交付物。
+- `context`：任务来源、当前现象、相关文件、已知约束。
+- `scope`：明确要做和不做的范围。
+- `checkpoints`：中途需要停下来确认的节点。
+- `selfTests`：用户或 Agent 应该如何验证结果。
+- `doneCriteria`：判断任务是否可以结束的标准。
+- `completionAnalysis`：任务结束后对完成度的结构化判断。
+
+V1 中这些内容主要由用户手动补充；未来接入 LLM provider 后，由 LLM 根据用户输入和项目知识生成草稿，用户确认后再进入 Agent 执行。
+
+### 3.3 Checkpoint Plan
+
+Checkpoint 是关键不确定性节点，不是普通进度日志。
+
+常见类型：
+
+- `direction`：方案方向确认。
+- `scope`：确认没有做超范围内容。
+- `risk`：确认关键风险已经消掉。
+- `integration`：确认依赖、配置、接口接上。
+- `pre_submit`：提交前最终检查。
+
+每个 checkpoint 应该包含：
+
+- 名称
+- 触发时机
+- 要回答的问题
+- 期望证据
+- 当前状态
+
+### 3.4 Self-test Plan
+
+Self-test 是用户定义的验收用例，可以是手动步骤，也可以映射到自动化测试。
+
+每条 self-test 至少包含：
+
+- 场景名称
+- 验证方式：`manual | unit | integration | e2e | command | screenshot`
+- 是否必需
+- 前置条件
+- 操作步骤
+- 期望结果
+- 最近一次验证证据
+
+### 3.5 Completion Analysis
+
+Completion Analysis 是任务结束时的判断报告。
+
+它不只回答“是否完成”，还要说明：
+
+- 哪些目标已完成
+- 哪些自测通过
+- 哪些内容缺失或失败
+- 有哪些证据
+- 有哪些遗留风险
+- 建议结束、继续修复、等待用户确认，还是拆后续任务
+
+### 3.6 Pipeline
 
 Pipeline 是一次 coded run 的阶段编排。
 
@@ -165,7 +231,7 @@ Pipeline 解决两个问题：
 - 把“写代码、验证、总结”拆成不同上下文，减少一个 Agent 自说自话。
 - 允许项目沉淀可复用策略，例如“Claude 实现，Codex 验证”或“UI 任务必须追加 screenshot review”。
 
-### 3.3 Stage
+### 3.7 Stage
 
 Stage 是 coded 发起的一次 Agent 子任务。
 
@@ -187,7 +253,7 @@ explore | plan | implement | verify | review | fix | checkpoint
 
 Stage 的输出必须尽量结构化，方便 coded 作为下一阶段输入。
 
-### 3.4 Plan
+### 3.8 Plan
 
 Plan 把 Task 拆成有顺序、有依赖、有检查方式的子任务。
 
@@ -218,7 +284,7 @@ pending | in_progress | verifying | done | skipped | blocked
 
 Plan 是活文档。每次修订都要保留版本，StageRun 需要知道自己基于哪个 Plan version 产生。
 
-### 3.5 Session / Agent Run
+### 3.9 Session / Agent Run
 
 Session 是一次真实的 Claude Code / Codex 对话；Agent Run 是 coded 发起并记录的一次 Stage 执行。V1 可以把一个 Stage 对应到一个 Session。
 
@@ -237,7 +303,7 @@ explore | plan | implement | verify | review | fix | checkpoint
 
 关键设计：coded 不依赖 Claude Code / Codex 的内部工具调用细节。它只记录对后续有价值的结果：stage 输入、stage 输出、改了哪些文件、跑了哪些命令、检查是否通过、做了什么决策、还剩什么风险。
 
-### 3.6 Context Pack
+### 3.10 Context Pack
 
 Context Pack 是每次 Session 开始前生成的 prompt 产物。
 
@@ -262,7 +328,7 @@ full       包含更多历史和决策依据
 review     面向新上下文评审，减少实现者偏见
 ```
 
-### 3.7 Verification Contract
+### 3.11 Verification Contract
 
 Verification Contract 定义“完成”的可检查标准。
 
@@ -290,7 +356,7 @@ checks:
     requiredForDone: true
 ```
 
-### 3.8 Evidence
+### 3.12 Evidence
 
 Evidence 是证明进展或验证结果的紧凑事实：
 
@@ -304,7 +370,7 @@ Evidence 是证明进展或验证结果的紧凑事实：
 
 Evidence 应该独立于摘要存储，避免以后再让 LLM 从长文本中重新推断事实。
 
-### 3.9 Project Knowledge / Memory
+### 3.13 Project Knowledge / Memory
 
 Project Knowledge / Memory 是仓库维度跨 Task 复用的知识，默认保存在 `.coded/knowledge/`。
 
@@ -324,7 +390,7 @@ Memory 生命周期：
 4. Context Builder 只召回和当前 Task 相关的 Project Knowledge。
 5. 过期、矛盾或低价值 Memory 可删除或降权。
 
-### 3.10 Workflow
+### 3.14 Workflow
 
 Workflow 是项目级可复用流程，保存在 `.coded/workflows/`。
 
@@ -612,6 +678,82 @@ type SessionIntent =
 
 type StageKind = SessionIntent;
 
+type SelfTestType = "manual" | "unit" | "integration" | "e2e" | "command" | "screenshot";
+
+type CheckpointType = "direction" | "scope" | "risk" | "integration" | "pre_submit" | "custom";
+
+interface TaskContract {
+  goal: TaskGoal;
+  context: TaskContext;
+  scope: TaskScope;
+  checkpoints: Checkpoint[];
+  selfTests: SelfTestCase[];
+  doneCriteria: DoneCriteria;
+}
+
+interface TaskGoal {
+  summary: string;
+  userVisibleResults: string[];
+  deliverables: string[];
+  successSignals: string[];
+}
+
+interface TaskContext {
+  reason: string;
+  currentBehavior: string | null;
+  relatedFiles: string[];
+  relatedModules: string[];
+  knownConstraints: string[];
+  historicalNotes: string[];
+}
+
+interface TaskScope {
+  in: string[];
+  out: string[];
+}
+
+interface Checkpoint {
+  id: string;
+  taskId: string;
+  type: CheckpointType;
+  name: string;
+  when: string;
+  questions: string[];
+  expectedEvidence: string[];
+  status: "pending" | "passed" | "failed" | "skipped";
+  notes: string;
+}
+
+interface SelfTestCase {
+  id: string;
+  taskId: string;
+  name: string;
+  type: SelfTestType;
+  required: boolean;
+  preconditions: string[];
+  steps: string[];
+  expectedResults: string[];
+  latestEvidenceId: string | null;
+  status: "unknown" | "passed" | "failed" | "skipped";
+}
+
+interface DoneCriteria {
+  required: string[];
+  optional: string[];
+  requiresUserConfirmation: string[];
+}
+
+interface CompletionAnalysis {
+  taskId: string;
+  status: "done" | "partially_done" | "not_done" | "blocked";
+  completed: string[];
+  failedOrMissing: string[];
+  evidenceIds: string[];
+  risks: string[];
+  recommendation: "finish" | "continue_fixing" | "needs_user_confirmation" | "split_follow_up";
+  createdAt: Date;
+}
+
 interface Pipeline {
   id: string;
   name: string;
@@ -636,9 +778,11 @@ interface Task {
   id: string;
   title: string;
   description: string;
+  contract: TaskContract;
   scope: string[];
   nonGoals: string[];
   acceptanceCriteria: string[];
+  completionAnalysis: CompletionAnalysis | null;
   status: TaskStatus;
   currentPlanId: string | null;
   activeSubtaskId: string | null;
@@ -810,10 +954,21 @@ interface ProjectConfig {
 ## Task
 - Title: {task.title}
 - Status: {task.status}
-- Objective: {task.description}
-- Scope: {scope}
-- Non-goals: {nonGoals}
-- Acceptance criteria: {acceptanceCriteria}
+- Goal: {task.contract.goal.summary}
+- User-visible results: {task.contract.goal.userVisibleResults}
+- Deliverables: {task.contract.goal.deliverables}
+- Context: {task.contract.context}
+- Scope in: {task.contract.scope.in}
+- Scope out: {task.contract.scope.out}
+
+## Checkpoints
+{pending and relevant checkpoints with questions and expected evidence}
+
+## Self-test Plan
+{required self-tests, expected results, latest status}
+
+## Done Criteria
+{required criteria and user-confirmation items}
 
 ## Stage
 - Kind: {stage.kind}
