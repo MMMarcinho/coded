@@ -227,3 +227,65 @@ completion_analysis:
 ```
 
 当这些内容足够清楚时，Claude Code、Codex 或其他 Agent 才更容易稳定地完成长程研发任务。coded 的产品核心就是持续追问三个问题：你要做什么，中途怎么知道没有跑偏，最后怎么知道真的做完了。
+
+## 初版 CLI
+
+仓库现在带有一个可运行的初版 CLI（TypeScript + Node）。它专注于结果层：把任务整理成契约、生成可丢给 Agent 的 prompt、记录 checkpoint 和完成度。它**不**规定研发路径，也不自动改你的代码——实际开发仍由 Claude Code / Codex 完成。
+
+```bash
+npm install
+npm run build      # 编译到 dist/
+npm test           # 运行 vitest
+
+# 在任意仓库里使用（用 node 直接跑，或 npm link 成全局 coded 命令）
+node /path/to/coded/dist/index.js <command>
+```
+
+最轻路径 **零 yaml 编辑** 就能跑（标题即目标）：
+
+```bash
+coded doctor                                # 检查 node、.coded、claude-code/codex 是否装好可用
+coded init                                  # 在当前仓库创建 .coded/（一次性）
+coded new "用户个人信息完善：增加头像、住址"   # 标题自动预填 goal，任务即可运行
+coded prompt --stage implement              # 组装 Context Pack 并启动 claude（缺失则打印 prompt）
+
+# 加自测和更新状态都用一行命令，不用搬文件、不用编辑 yaml
+coded selftest add "上传头像并预览"
+coded selftest add "详细地址必填校验" --type unit --cmd "npm test -- profile"
+coded verify --agent claude-code            # 无感自测：见下
+coded done                                  # 必测全过才放行（未过会列出待办；--force 可强制）
+```
+
+### 无感自测：`coded verify`
+
+编码完成后，不用你逐条手动验。`coded verify` 会**主动唤起 agent 去确认**你定义的自测用例和 checkpoint，再把结果自动写回契约：
+
+- **Phase 1（coded 直接跑）**：带 `--cmd` 的自测，coded 直接执行命令，按退出码自动判 pass/fail 并记录证据。
+- **Phase 2（唤起 agent）**：manual / 截图 / 需判断的自测，coded 组装确认 prompt，**headless 调用 `claude -p`**，解析它返回的结构化结果，自动回写每条 self-test 和 checkpoint 的状态。
+
+```bash
+coded verify                    # 默认 headless 唤起 verify agent，解析回写
+coded verify --interactive      # 改为交互式进入 agent 确认
+coded verify --print            # 只打印确认 prompt，不唤起
+```
+
+这样用户只需在契约里写清"怎么算对"，剩下的确认由 coded + agent 自动完成。
+
+想做更细的任务时，按需补充（全部可选）：
+
+```bash
+# 编辑 .coded/runs/<id>/contract.yaml 补 scope.in/out、checkpoints、doneCriteria
+coded status                                # 契约、self-test 计分（如 3/4 passed）、最近 drift
+coded list
+coded checkpoint                            # 生成 checkpoint prompt；或 --record cp.yaml 存快照
+coded complete                              # 生成完成度分析 prompt；或 --record done.yaml
+```
+
+设计取舍（初版，刻意「轻」）：
+
+- **只有 goal 是必须的**，scope / checkpoints / selfTests / doneCriteria 全可选，按需加。
+- **状态一行命令回写契约**（`coded selftest pass st-1`），`--record` 文件只是可选高级用法。
+- **checkpoint / verify / complete 是可选助手**，不是强制流水线；最小闭环就是 `new → prompt → selftest → done`。
+- **存储用文件系统**，不用数据库：`.coded/runs/<id>/` 下的 yaml 人可读、可 diff、可 review。
+- **发起优先启动 Agent**：检测到 `claude` / `codex` 且在终端里时直接启动，否则回退打印 prompt 和等价命令。
+- **不接 LLM**：契约由用户填，coded 负责组织上下文、校验、生成 prompt、记录结果。

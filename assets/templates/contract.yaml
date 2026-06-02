@@ -1,0 +1,54 @@
+# Task Contract — the most important structure coded builds before launching a
+# long-horizon task. It turns a one-line request into something the agent can
+# execute and the user can check. coded copies this into
+# .coded/runs/<task-id>/contract.yaml. In V1 the user fills it in by hand.
+#
+# Shape matches SPEC §3.2 / the TaskContract data model.
+
+goal:
+  summary: ""              # what this task is really trying to achieve, one line
+  userVisibleResults: []   # changes the user can perceive
+  deliverables: []         # concrete artifacts this task produces
+  successSignals: []       # external behavior when it works
+
+context:
+  reason: ""               # bug / feature / UX issue / tech debt
+  currentBehavior: null
+  relatedFiles: []
+  relatedModules: []
+  knownConstraints: []     # things the agent must not change
+  historicalNotes: []
+
+scope:
+  in: []                   # what to do
+  out: []                  # what explicitly NOT to do — the anti-drift guard
+
+# Checkpoints are key-uncertainty stops, not progress logs (SPEC §3.3).
+checkpoints:
+  - id: cp-1
+    type: direction        # direction | scope | risk | integration | pre_submit | custom
+    name: ""
+    when: ""               # when to stop and confirm, e.g. "before editing code"
+    questions: []
+    expectedEvidence: []
+    status: pending        # pending | passed | failed | skipped
+    notes: ""
+
+# Self-tests are the user's acceptance cases (SPEC §3.4). Manual or mapped to
+# automated tests. These are how we know the change is right.
+selfTests:
+  - id: st-1
+    name: ""
+    type: manual           # manual | unit | integration | e2e | command | screenshot
+    required: true
+    preconditions: []
+    steps: []
+    expectedResults: []
+    latestEvidence: null
+    status: unknown        # unknown | passed | failed | skipped
+
+# Done criteria sit one level above self-tests: when can the task end? (SPEC §3.5)
+doneCriteria:
+  required: []
+  optional: []
+  requiresUserConfirmation: []
