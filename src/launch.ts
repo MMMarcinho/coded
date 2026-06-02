@@ -71,6 +71,53 @@ function spawnEnv(): NodeJS.ProcessEnv {
   return { ...process.env, PATH: merged, CODED_LAUNCHED_BY: "coded" };
 }
 
+export interface ProbeResult {
+  agent: Agent;
+  binary: string;
+  path: string | null;
+  available: boolean; // binary found on disk
+  ok: boolean; // binary found AND `--version` ran successfully
+  version?: string;
+  error?: string;
+}
+
+// Cheap pre-flight: confirm the agent binary not only exists but actually runs,
+// before committing to a long headless session. Catches "installed but broken /
+// wrong arch / incompatible" up front instead of hanging or failing late.
+export function probeAgent(agent: Agent): ProbeResult {
+  const binary = BINARY[agent];
+  const found = findBinary(binary);
+  if (!found) return { agent, binary, path: null, available: false, ok: false };
+
+  const res = spawnSync(found, ["--version"], {
+    encoding: "utf8",
+    timeout: 8000,
+    env: spawnEnv(),
+    windowsHide: true,
+  });
+  if (res.error) {
+    const timedOut = (res.error as NodeJS.ErrnoException).code === "ETIMEDOUT";
+    return {
+      agent,
+      binary,
+      path: found,
+      available: true,
+      ok: false,
+      error: timedOut ? "version probe timed out" : res.error.message,
+    };
+  }
+  const line = (res.stdout || res.stderr || "").trim().split(/\r?\n/)[0];
+  return {
+    agent,
+    binary,
+    path: found,
+    available: true,
+    ok: res.status === 0,
+    version: line || undefined,
+    error: res.status === 0 ? undefined : res.stderr?.trim() || `exit ${res.status}`,
+  };
+}
+
 export function resolveAgent(name?: string): Agent {
   if (!name) return "claude-code";
   const n = name.toLowerCase();
@@ -160,8 +207,8 @@ export interface HeadlessResult {
 }
 
 // Run the agent non-interactively and capture its final response, so coded can
-// parse confirmation results back. Uses `claude -p` (print mode); other agents
-// fall back to unavailable until their headless flag is wired.
+// parse confirmation results back. claude uses `-p` (print mode); codex uses
+// its non-interactive `exec` subcommand. Both read the prompt from stdin.
 //
 // The prompt is piped via stdin rather than passed as an argv string: it can be
 // large (full contract + context) and may contain characters that are awkward
@@ -171,9 +218,7 @@ export function runAgentHeadless(agent: Agent, prompt: string, timeoutMs = 1000 
   const found = findBinary(binary);
   if (!found) return { ok: false, available: false, binary, output: "" };
 
-  // Only claude has a verified print mode in V1; `claude -p` reads the prompt
-  // from stdin when no prompt argument is given.
-  const args = agent === "claude-code" ? ["-p"] : [];
+  const args = agent === "claude-code" ? ["-p"] : ["exec"];
   const res = spawnSync(found, args, {
     input: prompt,
     encoding: "utf8",

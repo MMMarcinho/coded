@@ -9,6 +9,7 @@ import { cmdCheckpoint, cmdComplete, ensureExists } from "./commands/record.js";
 import { cmdSelfTestAdd, cmdSelfTestStatus } from "./commands/selftest.js";
 import { cmdDone } from "./commands/done.js";
 import { cmdVerify } from "./commands/verify.js";
+import { cmdDoctor } from "./commands/doctor.js";
 
 const program = new Command();
 
@@ -21,6 +22,11 @@ program
   .command("init")
   .description("Create .coded/ in the current repository with default assets.")
   .action(() => run(() => cmdInit()));
+
+program
+  .command("doctor")
+  .description("Check node, .coded, and whether claude-code / codex are installed and runnable.")
+  .action(() => run(() => cmdDoctor()));
 
 program
   .command("new")

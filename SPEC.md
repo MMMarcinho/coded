@@ -564,7 +564,7 @@ verify stage prompt 要求 Agent：
 
 agent 报告 `inconclusive` 的条目保持原状不动；解析失败时保存 agent 原始回复供人工查看。
 
-进程唤起力求稳定安全（参考 multica 的做法）：把 agent 二进制解析到绝对路径（搜索 PATH 加 homebrew / `/usr/local/bin` / `~/.local/bin` 等常见安装位，Windows 兼容 `.cmd`/`.exe`），用增补过 PATH 的干净 env 启动，设置超时、`windowsHide` 和大 `maxBuffer`，并通过 **stdin 传入 prompt**（而非 argv）以避免长度上限和转义问题。
+进程唤起力求稳定安全（参考 multica 的做法）：把 agent 二进制解析到绝对路径（搜索 PATH 加 homebrew / `/usr/local/bin` / `~/.local/bin` 等常见安装位，Windows 兼容 `.cmd`/`.exe`），用增补过 PATH 的干净 env 启动，设置超时、`windowsHide` 和大 `maxBuffer`，并通过 **stdin 传入 prompt**（而非 argv）以避免长度上限和转义问题。headless 模式：claude 用 `-p`，codex 用 `exec`。唤起前先用 `--version` 做一次探针（`coded doctor` 也用它），把"装了但跑不起来/版本不对"在长会话前就暴露，而不是等超时。
 
 ### 4.6 Agent-driven Checkpoint
 

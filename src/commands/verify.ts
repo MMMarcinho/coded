@@ -10,7 +10,7 @@ import {
 } from "../contract.js";
 import { pendingForAgent, runCommandSelfTests } from "../runner.js";
 import { buildConfirmPrompt, parseAgentResults, toSelfTestStatus } from "../confirm.js";
-import { chooseVerifyAgent, launchAgent, runAgentHeadless } from "../launch.js";
+import { chooseVerifyAgent, launchAgent, probeAgent, runAgentHeadless } from "../launch.js";
 import type { ContractCheckpoint } from "../types.js";
 
 export interface VerifyOptions {
@@ -77,20 +77,28 @@ export function cmdVerify(taskRef: string | undefined, opts: VerifyOptions): voi
     return;
   }
 
-  // Default: wake the agent headlessly and write its verdicts back.
-  console.log(`\nAsking ${agent} to confirm ${pending.length} item(s)…`);
-  const head = runAgentHeadless(agent, prompt);
-  if (!head.available) {
+  // Pre-flight: make sure the agent is not just present but actually runs,
+  // before committing to a long headless session.
+  const probe = probeAgent(agent);
+  if (!probe.ok) {
     const other = agent === "codex" ? "claude-code" : "codex";
-    console.error(`Verify agent '${head.binary}' is not installed.`);
+    if (!probe.available) {
+      console.error(`Verify agent '${probe.binary}' is not installed.`);
+    } else {
+      console.error(`Verify agent '${probe.binary}' is installed but not runnable: ${probe.error}`);
+    }
     console.error(`Options (coded won't silently switch agents):`);
-    console.error(`  - install ${head.binary} for the independent angle, or`);
+    console.error(`  - fix/install ${probe.binary} for the independent angle, or`);
     console.error(`  - \`coded verify --agent ${other}\` to verify with ${other} (same as implementer — weaker check), or`);
     console.error(`  - \`coded verify --print\` to confirm manually.`);
-    console.error(`\nConfirm prompt saved to ${packPath}.`);
+    console.error(`\nConfirm prompt saved to ${packPath}. See \`coded doctor\`.`);
     process.exitCode = 1;
     return;
   }
+
+  // Wake the agent headlessly and write its verdicts back.
+  console.log(`\nAsking ${agent} (${probe.version ?? "ok"}) to confirm ${pending.length} item(s)…`);
+  const head = runAgentHeadless(agent, prompt);
   if (!head.ok && !head.output) {
     console.error(`Agent run failed: ${head.error ?? "no output"}. Prompt saved to ${packPath}.`);
     process.exitCode = 1;

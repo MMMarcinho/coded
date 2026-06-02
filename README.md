@@ -244,6 +244,7 @@ node /path/to/coded/dist/index.js <command>
 最轻路径 **零 yaml 编辑** 就能跑（标题即目标）：
 
 ```bash
+coded doctor                                # 检查 node、.coded、claude-code/codex 是否装好可用
 coded init                                  # 在当前仓库创建 .coded/（一次性）
 coded new "用户个人信息完善：增加头像、住址"   # 标题自动预填 goal，任务即可运行
 coded prompt --stage implement              # 组装 Context Pack 并启动 claude（缺失则打印 prompt）
