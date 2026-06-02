@@ -1,11 +1,13 @@
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { codedPaths, findCodedRoot, taskDir } from "../paths.js";
+import { codedPaths, contractPath, findCodedRoot, taskDir } from "../paths.js";
 import { loadConfig, newTaskId, saveMeta } from "../store.js";
-import type { TaskMeta } from "../types.js";
+import { saveContract } from "../contract.js";
+import type { TaskContract, TaskMeta } from "../types.js";
 
 export interface NewOptions {
   workflow?: string;
+  goal?: string;
 }
 
 export function cmdNew(title: string, opts: NewOptions): void {
@@ -18,12 +20,24 @@ export function cmdNew(title: string, opts: NewOptions): void {
   const dir = taskDir(paths, id);
   mkdirSync(join(dir, "checkpoints"), { recursive: true });
 
-  // Seed contract.yaml from the project template so the user can fill it in.
-  const template = join(paths.templatesDir, "contract.yaml");
-  const contractPath = join(dir, "contract.yaml");
-  if (existsSync(template)) {
-    copyFileSync(template, contractPath);
-  }
+  // Seed a clean, minimal contract: goal pre-filled from the title (or --goal),
+  // everything else empty so the task is runnable with zero editing and CLI
+  // edits (`coded selftest add`) produce clean ids. The verbose, commented
+  // reference lives at .coded/templates/contract.yaml.
+  const cPath = contractPath(paths, id);
+  const contract: TaskContract = {
+    goal: { summary: opts.goal ?? title, userVisibleResults: [], deliverables: [] },
+    context: { reason: "", relatedFiles: [] },
+    scope: { in: [], out: [] },
+    checkpoints: [],
+    selfTests: [],
+    doneCriteria: { required: [], optional: [], requiresUserConfirmation: [] },
+  };
+  saveContract(
+    cPath,
+    contract,
+    "coded task contract. Only goal is required.\nFull shape & examples: .coded/templates/contract.yaml",
+  );
 
   const now = new Date().toISOString();
   const meta: TaskMeta = {
@@ -38,9 +52,9 @@ export function cmdNew(title: string, opts: NewOptions): void {
   saveMeta(paths, meta);
 
   console.log(`Created task ${id}`);
-  console.log(`  contract: ${contractPath}`);
+  console.log(`  goal: ${meta.title}`);
   console.log("");
-  console.log("Next:");
-  console.log(`  1. Fill in the contract (goal / scope / selfTests / doneCriteria).`);
-  console.log(`  2. \`coded prompt ${id} --stage implement\` to launch an agent.`);
+  console.log("Ready to go — `coded prompt --stage implement` will launch an agent.");
+  console.log("Optional: edit the contract to add scope/self-tests:");
+  console.log(`  ${cPath}`);
 }

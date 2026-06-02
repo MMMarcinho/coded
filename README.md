@@ -241,27 +241,35 @@ npm test           # 运行 vitest
 node /path/to/coded/dist/index.js <command>
 ```
 
-核心闭环 **契约 → prompt**：
+最轻路径 **零 yaml 编辑** 就能跑（标题即目标）：
 
 ```bash
-coded init                                  # 在当前仓库创建 .coded/（含模板和 prompt）
-coded new "把登录错误提示做细"               # 生成 .coded/runs/<id>/contract.yaml
-# 手动填写 contract.yaml 的 goal / scope / selfTests / doneCriteria
+coded init                                  # 在当前仓库创建 .coded/（一次性）
+coded new "用户个人信息完善：增加头像、住址"   # 标题自动预填 goal，任务即可运行
 coded prompt --stage implement              # 组装 Context Pack 并启动 claude（缺失则打印 prompt）
-coded prompt --stage implement --print      # 只打印，不启动
+
+# 加自测和更新状态都用一行命令，不用搬文件、不用编辑 yaml
+coded selftest add "上传头像并预览"
+coded selftest add "详细地址必填校验" --type unit --cmd "npm test -- profile"
+coded selftest pass st-1 "手动验证通过"
+coded done                                  # 必测全过才放行（未过会列出待办；--force 可强制）
 ```
 
-发起后续阶段与记录结果：
+想做更细的任务时，按需补充（全部可选）：
 
 ```bash
-coded status                                # 查看契约、self-test 状态、最近 checkpoint 的 drift
-coded list                                  # 列出所有任务
-coded checkpoint --record cp.yaml           # 记录一次 checkpoint 快照（含 drift）
-coded complete  --record done.yaml          # 记录完成度分析；status: done 时自动结束任务
+# 编辑 .coded/runs/<id>/contract.yaml 补 scope.in/out、checkpoints、doneCriteria
+coded status                                # 契约、self-test 计分（如 3/4 passed）、最近 drift
+coded list
+coded checkpoint                            # 生成 checkpoint prompt；或 --record cp.yaml 存快照
+coded complete                              # 生成完成度分析 prompt；或 --record done.yaml
 ```
 
-设计取舍（初版）：
+设计取舍（初版，刻意「轻」）：
 
+- **只有 goal 是必须的**，scope / checkpoints / selfTests / doneCriteria 全可选，按需加。
+- **状态一行命令回写契约**（`coded selftest pass st-1`），`--record` 文件只是可选高级用法。
+- **checkpoint / verify / complete 是可选助手**，不是强制流水线；最小闭环就是 `new → prompt → selftest → done`。
 - **存储用文件系统**，不用数据库：`.coded/runs/<id>/` 下的 yaml 人可读、可 diff、可 review。
 - **发起优先启动 Agent**：检测到 `claude` / `codex` 且在终端里时直接启动，否则回退打印 prompt 和等价命令。
 - **不接 LLM**：契约由用户填，coded 负责组织上下文、校验、生成 prompt、记录结果。

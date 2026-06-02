@@ -56,3 +56,7 @@ export function codedPaths(projectRoot: string): CodedPaths {
 export function taskDir(paths: CodedPaths, taskId: string): string {
   return join(paths.runsDir, taskId);
 }
+
+export function contractPath(paths: CodedPaths, taskId: string): string {
+  return join(taskDir(paths, taskId), "contract.yaml");
+}

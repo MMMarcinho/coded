@@ -6,6 +6,8 @@ import { cmdPrompt } from "./commands/prompt.js";
 import { cmdStatus } from "./commands/status.js";
 import { cmdList } from "./commands/list.js";
 import { cmdCheckpoint, cmdComplete, ensureExists } from "./commands/record.js";
+import { cmdSelfTestAdd, cmdSelfTestStatus } from "./commands/selftest.js";
+import { cmdDone } from "./commands/done.js";
 
 const program = new Command();
 
@@ -21,9 +23,10 @@ program
 
 program
   .command("new")
-  .argument("<title>", "task title")
+  .argument("<title>", "task title (also used as the goal)")
   .option("-w, --workflow <name>", "workflow to attach")
-  .description("Create a new task with a contract to fill in.")
+  .option("-g, --goal <text>", "goal summary (defaults to the title)")
+  .description("Create a new task, ready to run with zero editing.")
   .action((title, opts) => run(() => cmdNew(title, opts)));
 
 program
@@ -72,6 +75,53 @@ program
     ensureExists(opts.record);
     cmdComplete(task, opts);
   }));
+
+const selftest = program
+  .command("selftest")
+  .description("Update or add self-tests on a task's contract.");
+
+selftest
+  .command("pass")
+  .argument("<id>", "self-test id, e.g. st-1")
+  .argument("[evidence]", "evidence note")
+  .option("-t, --task <task>", "task id (default: most recent)")
+  .description("Mark a self-test passed (writes back to the contract).")
+  .action((id, evidence, opts) => run(() => cmdSelfTestStatus("pass", opts.task, id, evidence)));
+
+selftest
+  .command("fail")
+  .argument("<id>", "self-test id")
+  .argument("[evidence]", "evidence note")
+  .option("-t, --task <task>", "task id (default: most recent)")
+  .description("Mark a self-test failed.")
+  .action((id, evidence, opts) => run(() => cmdSelfTestStatus("fail", opts.task, id, evidence)));
+
+selftest
+  .command("skip")
+  .argument("<id>", "self-test id")
+  .argument("[reason]", "why it is skipped")
+  .option("-t, --task <task>", "task id (default: most recent)")
+  .description("Mark a self-test skipped.")
+  .action((id, reason, opts) => run(() => cmdSelfTestStatus("skip", opts.task, id, reason)));
+
+selftest
+  .command("add")
+  .argument("<name>", "self-test name")
+  .option("-t, --task <task>", "task id (default: most recent)")
+  .option("--type <type>", "manual|unit|integration|e2e|command|screenshot")
+  .option("--cmd <command>", "command that verifies it")
+  .option("--optional", "mark as not required")
+  .description("Add a self-test from the CLI instead of editing yaml.")
+  .action((name, opts) =>
+    run(() => cmdSelfTestAdd(opts.task, name, { type: opts.type, required: !opts.optional, cmd: opts.cmd })),
+  );
+
+program
+  .command("done")
+  .argument("[task]", "task id (default: most recent)")
+  .option("--force", "close even if required self-tests are pending")
+  .description("Mark a task done once required self-tests pass.")
+  .action((task, opts) => run(() => cmdDone(task, opts)));
 
 program.parseAsync(process.argv);
 

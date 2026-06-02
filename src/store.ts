@@ -15,12 +15,15 @@ export function loadConfig(paths: CodedPaths): CodedConfig {
 }
 
 export function slugify(title: string): string {
+  // Keep Unicode letters/numbers (so Chinese titles stay readable); collapse
+  // everything else into single dashes.
   return (
     title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
       .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "task"
+      .slice(0, 40)
+      .replace(/-+$/g, "") || "task"
   );
 }
 

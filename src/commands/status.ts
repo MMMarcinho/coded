@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { codedPaths, findCodedRoot, taskDir } from "../paths.js";
 import { loadMeta, resolveTaskId } from "../store.js";
-import { loadContract, summarizeSelfTests } from "../contract.js";
+import { loadContract, selfTestTally, summarizeSelfTests } from "../contract.js";
 
 export function cmdStatus(taskRef?: string): void {
   const root = findCodedRoot();
@@ -25,7 +25,7 @@ export function cmdStatus(taskRef?: string): void {
     const outScope = contract.scope?.out ?? [];
     if (inScope.length) console.log(`Scope  in: ${inScope.join("; ")}`);
     if (outScope.length) console.log(`       out: ${outScope.join("; ")}`);
-    console.log(`\nSelf-tests:\n${summarizeSelfTests(contract)}`);
+    console.log(`\nSelf-tests (${selfTestTally(contract)}):\n${summarizeSelfTests(contract)}`);
   }
 
   // Latest checkpoint + drift.
