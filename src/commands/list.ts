@@ -1,5 +1,5 @@
 import { codedPaths, findCodedRoot } from "../paths.js";
-import { listMeta } from "../store.js";
+import { listLoops } from "../store.js";
 
 export interface ListOptions {
   status?: string;
@@ -9,15 +9,15 @@ export function cmdList(opts: ListOptions): void {
   const root = findCodedRoot();
   if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
   const paths = codedPaths(root);
-  let tasks = listMeta(paths);
-  if (opts.status) tasks = tasks.filter((t) => t.status === opts.status);
+  let loops = listLoops(paths);
+  if (opts.status) loops = loops.filter((t) => t.status === opts.status);
 
-  if (tasks.length === 0) {
-    console.log("No tasks. Create one with `coded new \"<title>\"`.");
+  if (loops.length === 0) {
+    console.log("No loops. Create one with `coded loop \"<需求标题>\"`.");
     return;
   }
-  for (const t of tasks) {
-    console.log(`${t.status.padEnd(12)} ${t.id}`);
-    console.log(`${" ".repeat(12)} ${t.title}`);
+  for (const t of loops) {
+    console.log(`${t.status.padEnd(14)} ${t.id}`);
+    console.log(`${" ".repeat(14)} ${t.title}`);
   }
 }

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildContextPack } from "../src/contextPack.js";
 import { codedPaths } from "../src/paths.js";
-import type { CodedConfig, TaskContract, TaskMeta } from "../src/types.js";
+import type { CodedConfig, LoopContract, LoopMeta } from "../src/types.js";
 
 function setup() {
   const root = mkdtempSync(join(tmpdir(), "coded-test-"));
@@ -24,18 +24,18 @@ const config: CodedConfig = {
   assets: {},
 };
 
-const meta: TaskMeta = {
+const meta: LoopMeta = {
   id: "demo-1",
   title: "Demo",
-  status: "in_progress",
+  status: "implementing",
   workflow: "default",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   history: [],
 };
 
-const contract: TaskContract = {
-  goal: { summary: "ship it" },
+const contract: LoopContract = {
+  requirement: { summary: "ship it" },
   scope: { in: ["module a"], out: ["everything else"] },
   selfTests: [{ id: "st-1", name: "smoke", required: true }],
 };

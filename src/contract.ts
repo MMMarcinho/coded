@@ -1,17 +1,17 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { parse, stringify } from "yaml";
-import type { SelfTest, SelfTestType, TaskContract } from "./types.js";
+import type { LoopContract, SelfTest, SelfTestType } from "./types.js";
 
-export function loadContract(path: string): TaskContract {
+export function loadContract(path: string): LoopContract {
   const raw = readFileSync(path, "utf8");
   const doc = parse(raw);
   if (doc == null || typeof doc !== "object") {
     throw new Error(`Contract at ${path} is empty or not a mapping.`);
   }
-  return doc as TaskContract;
+  return doc as LoopContract;
 }
 
-export function saveContract(path: string, contract: TaskContract, header?: string): void {
+export function saveContract(path: string, contract: LoopContract, header?: string): void {
   const prefix = header ? header.replace(/^/gm, "# ").trimEnd() + "\n\n" : "";
   writeFileSync(path, prefix + stringify(contract));
 }
@@ -19,7 +19,7 @@ export function saveContract(path: string, contract: TaskContract, header?: stri
 // Light, one-shot self-test status update written straight back to the
 // contract — no file shuffling. Returns the updated test.
 export function setSelfTestStatus(
-  contract: TaskContract,
+  contract: LoopContract,
   id: string,
   status: NonNullable<SelfTest["status"]>,
   evidence?: string,
@@ -35,7 +35,7 @@ export function setSelfTestStatus(
 }
 
 export function addSelfTest(
-  contract: TaskContract,
+  contract: LoopContract,
   name: string,
   opts: { type?: SelfTestType; required?: boolean; command?: string } = {},
 ): SelfTest {
@@ -54,7 +54,7 @@ export function addSelfTest(
 }
 
 // "3/4 passed (1 required pending)" — a compact health line for `status`.
-export function selfTestTally(c: TaskContract): string {
+export function selfTestTally(c: LoopContract): string {
   const tests = c.selfTests ?? [];
   if (tests.length === 0) return "no self-tests defined";
   const passed = tests.filter((t) => t.status === "passed").length;
@@ -66,7 +66,7 @@ export function selfTestTally(c: TaskContract): string {
 }
 
 // Required self-tests that are not yet passed (or skipped). Empty => done-ready.
-export function blockingSelfTests(c: TaskContract): SelfTest[] {
+export function blockingSelfTests(c: LoopContract): SelfTest[] {
   return (c.selfTests ?? []).filter(
     (t) => t.required && t.status !== "passed" && t.status !== "skipped",
   );
@@ -79,12 +79,12 @@ export interface ValidationResult {
 
 // Validation is lenient on purpose: a freshly created contract is mostly empty
 // and the user fills it in. Errors block prompt generation; warnings only nudge.
-export function validateContract(c: TaskContract): ValidationResult {
+export function validateContract(c: LoopContract): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  if (!c.goal || !c.goal.summary || !c.goal.summary.trim()) {
-    errors.push("goal.summary is required — say what this task should achieve.");
+  if (!c.requirement || !c.requirement.summary || !c.requirement.summary.trim()) {
+    errors.push("requirement.summary is required — describe what this loop should deliver.");
   }
 
   const scopeIn = c.scope?.in ?? [];
@@ -115,7 +115,7 @@ export function validateContract(c: TaskContract): ValidationResult {
   return { errors, warnings };
 }
 
-export function summarizeSelfTests(c: TaskContract): string {
+export function summarizeSelfTests(c: LoopContract): string {
   const tests = c.selfTests ?? [];
   if (tests.length === 0) return "  (none defined)";
   return tests

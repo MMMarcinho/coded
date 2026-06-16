@@ -1,30 +1,34 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { codedPaths, findCodedRoot, taskDir } from "../paths.js";
-import { loadMeta, resolveTaskId } from "../store.js";
+import { codedPaths, findCodedRoot, loopDir } from "../paths.js";
+import { loadLoop, resolveLoopId } from "../store.js";
 import { loadContract, selfTestTally, summarizeSelfTests } from "../contract.js";
 
 export function cmdStatus(taskRef?: string): void {
   const root = findCodedRoot();
   if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
   const paths = codedPaths(root);
-  const taskId = resolveTaskId(paths, taskRef);
-  const meta = loadMeta(paths, taskId);
-  const dir = taskDir(paths, taskId);
+  const loopId = resolveLoopId(paths, taskRef);
+  const meta = loadLoop(paths, loopId);
+  const dir = loopDir(paths, loopId);
 
-  console.log(`Task   ${meta.id}`);
-  console.log(`Title  ${meta.title}`);
-  console.log(`Status ${meta.status}   Workflow ${meta.workflow}`);
+  console.log(`Loop    ${meta.id}`);
+  console.log(`Title   ${meta.title}`);
+  console.log(`Status  ${meta.status}   Workflow ${meta.workflow}`);
 
-  const contractPath = join(dir, "contract.yaml");
-  if (existsSync(contractPath)) {
-    const contract = loadContract(contractPath);
-    console.log(`\nGoal   ${contract.goal?.summary ?? "(unset)"}`);
+  const cPath = join(dir, "contract.yaml");
+  if (existsSync(cPath)) {
+    const contract = loadContract(cPath);
+    const req = contract.requirement;
+    console.log(`\nRequirement  ${req?.summary ?? "(unset)"}`);
+    if (req?.source) console.log(`Source       ${req.source}`);
+    if (req?.priority) console.log(`Priority     ${req.priority}`);
+    if (req?.detail) console.log(`Detail       ${req.detail}`);
     const inScope = contract.scope?.in ?? [];
     const outScope = contract.scope?.out ?? [];
-    if (inScope.length) console.log(`Scope  in: ${inScope.join("; ")}`);
-    if (outScope.length) console.log(`       out: ${outScope.join("; ")}`);
+    if (inScope.length) console.log(`Scope in     ${inScope.join("; ")}`);
+    if (outScope.length) console.log(`Scope out    ${outScope.join("; ")}`);
     console.log(`\nSelf-tests (${selfTestTally(contract)}):\n${summarizeSelfTests(contract)}`);
   }
 

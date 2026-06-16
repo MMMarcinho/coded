@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { cmdInit } from "./commands/init.js";
-import { cmdNew } from "./commands/new.js";
+import { cmdLoop } from "./commands/loop.js";
 import { cmdPrompt } from "./commands/prompt.js";
 import { cmdStatus } from "./commands/status.js";
 import { cmdList } from "./commands/list.js";
@@ -15,8 +15,8 @@ const program = new Command();
 
 program
   .name("coded")
-  .description("Task contract, checkpoint, and completion layer for Claude Code / Codex.")
-  .version("0.1.0");
+  .description("Loop 工程管理工具 — 记录需求研发的全流程。")
+  .version("0.2.0");
 
 program
   .command("init")
@@ -29,18 +29,21 @@ program
   .action(() => run(() => cmdDoctor()));
 
 program
-  .command("new")
-  .argument("[title]", "task title (also used as the goal); omit for interactive wizard")
+  .command("loop")
+  .alias("new")
+  .argument("[title]", "需求标题 (also used as the requirement summary); omit for interactive wizard")
   .option("-w, --workflow <name>", "workflow to attach")
-  .option("-g, --goal <text>", "goal summary (defaults to the title)")
-  .description("Create a new task, ready to run with zero editing.")
-  .action((title, opts) => run(() => cmdNew(title, opts)));
+  .option("-r, --requirement <text>", "requirement summary (defaults to the title)")
+  .option("--source <source>", "product|tech_debt|bug|optimization|other")
+  .option("--priority <priority>", "p0|p1|p2|p3")
+  .description("Create a new loop (需求研发循环).")
+  .action((title, opts) => run(() => cmdLoop(title, opts)));
 
 program
   .command("prompt")
   .alias("run")
-  .argument("[task]", "task id (default: most recent)")
-  .requiredOption("-s, --stage <stage>", "stage: implement|verify|review|checkpoint|complete|explore|plan|fix")
+  .argument("[loop]", "loop id (default: most recent)")
+  .requiredOption("-s, --stage <stage>", "stage: analyze|design|plan|implement|test|verify|review|refine|checkpoint|complete")
   .option("-a, --agent <agent>", "claude-code | codex")
   .option("-m, --message <text>", "extra instruction for this session")
   .option("--print", "print the prompt instead of launching an agent")
@@ -49,19 +52,19 @@ program
 
 program
   .command("status")
-  .argument("[task]", "task id (default: most recent)")
-  .description("Show a task's contract, self-test status, and latest checkpoint.")
+  .argument("[loop]", "loop id (default: most recent)")
+  .description("Show a loop's requirement, lifecycle status, self-tests, and latest checkpoint.")
   .action((task) => run(() => cmdStatus(task)));
 
 program
   .command("list")
-  .option("--status <status>", "filter by status")
-  .description("List tasks.")
+  .option("--status <status>", "filter by lifecycle status")
+  .description("List all loops.")
   .action((opts) => run(() => cmdList(opts)));
 
 program
   .command("checkpoint")
-  .argument("[task]", "task id (default: most recent)")
+  .argument("[loop]", "loop id (default: most recent)")
   .option("-a, --agent <agent>", "claude-code | codex")
   .option("--print", "print the prompt instead of launching an agent")
   .option("--record <file>", "store an agent's checkpoint output as the next snapshot")
@@ -73,7 +76,7 @@ program
 
 program
   .command("complete")
-  .argument("[task]", "task id (default: most recent)")
+  .argument("[loop]", "loop id (default: most recent)")
   .option("-a, --agent <agent>", "claude-code | codex")
   .option("--print", "print the prompt instead of launching an agent")
   .option("--record <file>", "store a completion analysis (completion.yaml)")
@@ -91,7 +94,7 @@ selftest
   .command("pass")
   .argument("<id>", "self-test id, e.g. st-1")
   .argument("[evidence]", "evidence note")
-  .option("-t, --task <task>", "task id (default: most recent)")
+  .option("-t, --task <loop>", "loop id (default: most recent)")
   .description("Mark a self-test passed (writes back to the contract).")
   .action((id, evidence, opts) => run(() => cmdSelfTestStatus("pass", opts.task, id, evidence)));
 
@@ -99,7 +102,7 @@ selftest
   .command("fail")
   .argument("<id>", "self-test id")
   .argument("[evidence]", "evidence note")
-  .option("-t, --task <task>", "task id (default: most recent)")
+  .option("-t, --task <loop>", "loop id (default: most recent)")
   .description("Mark a self-test failed.")
   .action((id, evidence, opts) => run(() => cmdSelfTestStatus("fail", opts.task, id, evidence)));
 
@@ -107,14 +110,14 @@ selftest
   .command("skip")
   .argument("<id>", "self-test id")
   .argument("[reason]", "why it is skipped")
-  .option("-t, --task <task>", "task id (default: most recent)")
+  .option("-t, --task <loop>", "loop id (default: most recent)")
   .description("Mark a self-test skipped.")
   .action((id, reason, opts) => run(() => cmdSelfTestStatus("skip", opts.task, id, reason)));
 
 selftest
   .command("add")
   .argument("<name>", "self-test name")
-  .option("-t, --task <task>", "task id (default: most recent)")
+  .option("-t, --task <loop>", "loop id (default: most recent)")
   .option("--type <type>", "manual|unit|integration|e2e|command|screenshot")
   .option("--cmd <command>", "command that verifies it")
   .option("--optional", "mark as not required")
@@ -125,7 +128,7 @@ selftest
 
 program
   .command("verify")
-  .argument("[task]", "task id (default: most recent)")
+  .argument("[loop]", "loop id (default: most recent)")
   .option("-a, --agent <agent>", "claude-code | codex")
   .option("--interactive", "launch the agent interactively instead of headless")
   .option("--print", "print the confirm prompt instead of waking an agent")
@@ -134,9 +137,9 @@ program
 
 program
   .command("done")
-  .argument("[task]", "task id (default: most recent)")
+  .argument("[loop]", "loop id (default: most recent)")
   .option("--force", "close even if required self-tests are pending")
-  .description("Mark a task done once required self-tests pass.")
+  .description("Mark a loop done once required self-tests pass.")
   .action((task, opts) => run(() => cmdDone(task, opts)));
 
 program.parseAsync(process.argv);

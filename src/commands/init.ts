@@ -54,5 +54,5 @@ export function cmdInit(): void {
   } else {
     console.log(`Initialized .coded/ in ${projectRoot}`);
   }
-  console.log("Next: `coded new \"<task title>\"` to start a task.");
+  console.log("Next: `coded loop \"<需求标题>\"` to start a loop.");
 }

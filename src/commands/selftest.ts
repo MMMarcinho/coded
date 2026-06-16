@@ -1,5 +1,5 @@
-import { codedPaths, contractPath, findCodedRoot } from "../paths.js";
-import { appendEvent, loadMeta, resolveTaskId } from "../store.js";
+import { codedPaths, findCodedRoot, loopContractPath } from "../paths.js";
+import { appendEvent, loadLoop, resolveLoopId } from "../store.js";
 import {
   addSelfTest,
   loadContract,
@@ -24,13 +24,13 @@ export function cmdSelfTestStatus(
   id: string,
   evidence: string | undefined,
 ): void {
-  const { paths, taskId } = resolve(taskRef);
-  const cPath = contractPath(paths, taskId);
+  const { paths, loopId } = resolve(taskRef);
+  const cPath = loopContractPath(paths, loopId);
   const contract = loadContract(cPath);
   const test = setSelfTestStatus(contract, id, VERB_TO_STATUS[verb], evidence);
   saveContract(cPath, contract);
 
-  const meta = loadMeta(paths, taskId);
+  const meta = loadLoop(paths, loopId);
   appendEvent(paths, meta, { kind: "status", note: `selftest ${id} -> ${test.status}` });
   console.log(`${id} -> ${test.status}.  ${selfTestTally(contract)}`);
 }
@@ -42,8 +42,8 @@ export function cmdSelfTestAdd(
   name: string,
   opts: { type?: string; required?: boolean; cmd?: string },
 ): void {
-  const { paths, taskId } = resolve(taskRef);
-  const cPath = contractPath(paths, taskId);
+  const { paths, loopId } = resolve(taskRef);
+  const cPath = loopContractPath(paths, loopId);
   const contract = loadContract(cPath);
   const test = addSelfTest(contract, name, {
     type: opts.type as SelfTestType | undefined,
@@ -58,6 +58,6 @@ function resolve(taskRef?: string) {
   const root = findCodedRoot();
   if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
   const paths = codedPaths(root);
-  const taskId = resolveTaskId(paths, taskRef);
-  return { paths, taskId };
+  const loopId = resolveLoopId(paths, taskRef);
+  return { paths, loopId };
 }

@@ -53,10 +53,16 @@ export function codedPaths(projectRoot: string): CodedPaths {
   };
 }
 
-export function taskDir(paths: CodedPaths, taskId: string): string {
-  return join(paths.runsDir, taskId);
+export function loopDir(paths: CodedPaths, loopId: string): string {
+  return join(paths.runsDir, loopId);
 }
 
-export function contractPath(paths: CodedPaths, taskId: string): string {
-  return join(taskDir(paths, taskId), "contract.yaml");
+export function loopContractPath(paths: CodedPaths, loopId: string): string {
+  return join(loopDir(paths, loopId), "contract.yaml");
 }
+
+/** @deprecated Use loopDir instead. */
+export const taskDir = loopDir;
+
+/** @deprecated Use loopContractPath instead. */
+export const contractPath = loopContractPath;

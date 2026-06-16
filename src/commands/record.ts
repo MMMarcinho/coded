@@ -2,8 +2,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { readFileSync } from "node:fs";
-import { codedPaths, findCodedRoot, taskDir } from "../paths.js";
-import { appendEvent, loadMeta, resolveTaskId, setStatus } from "../store.js";
+import { codedPaths, findCodedRoot, loopDir } from "../paths.js";
+import { appendEvent, loadLoop, resolveLoopId, setStatus } from "../store.js";
 import { cmdPrompt } from "./prompt.js";
 
 // `coded checkpoint <id>`: without --record, generate the checkpoint prompt.
@@ -19,9 +19,9 @@ export function cmdCheckpoint(
   const root = findCodedRoot();
   if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
   const paths = codedPaths(root);
-  const taskId = resolveTaskId(paths, taskRef);
-  const meta = loadMeta(paths, taskId);
-  const cpDir = join(taskDir(paths, taskId), "checkpoints");
+  const loopId = resolveLoopId(paths, taskRef);
+  const meta = loadLoop(paths, loopId);
+  const cpDir = join(loopDir(paths, loopId), "checkpoints");
   mkdirSync(cpDir, { recursive: true });
 
   const next = readdirSync(cpDir).filter((f) => f.endsWith(".yaml")).length + 1;
@@ -50,9 +50,9 @@ export function cmdComplete(
   const root = findCodedRoot();
   if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
   const paths = codedPaths(root);
-  const taskId = resolveTaskId(paths, taskRef);
-  const meta = loadMeta(paths, taskId);
-  const dest = join(taskDir(paths, taskId), "completion.yaml");
+  const loopId = resolveLoopId(paths, taskRef);
+  const meta = loadLoop(paths, loopId);
+  const dest = join(loopDir(paths, loopId), "completion.yaml");
   copyFileSync(opts.record, dest);
 
   const c = parse(readFileSync(dest, "utf8")) ?? {};

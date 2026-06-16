@@ -1,41 +1,41 @@
-# Task Contract — the most important structure coded builds before launching a
-# long-horizon task. It turns a one-line request into something the agent can
-# execute and the user can check. coded copies this into
-# .coded/runs/<task-id>/contract.yaml. In V1 the user fills it in by hand.
-#
-# Shape matches SPEC §3.2 / the TaskContract data model.
+# Loop Contract — 一次完整需求研发循环的契约文件。
+# coded copies this into .coded/runs/<loop-id>/contract.yaml.
+# In V1 the user fills it in by hand.
 
-goal:
-  summary: ""              # what this task is really trying to achieve, one line
-  userVisibleResults: []   # changes the user can perceive
-  deliverables: []         # concrete artifacts this task produces
-  successSignals: []       # external behavior when it works
+requirement:
+  summary: ""              # 需求一句话描述
+  source: ""               # product | tech_debt | bug | optimization | other
+  priority: ""             # p0 | p1 | p2 | p3
+  detail: ""               # 需求详细描述
+  stakeholders: []          # 相关干系人
+  userVisibleResults: []   # 用户可感知的变化
+  deliverables: []          # 具体产出物
+  successSignals: []       # 成功时的外部表现
 
 context:
   reason: ""               # bug / feature / UX issue / tech debt
   currentBehavior: null
   relatedFiles: []
   relatedModules: []
-  knownConstraints: []     # things the agent must not change
+  knownConstraints: []     # 已知约束和限制
   historicalNotes: []
 
 scope:
-  in: []                   # what to do
-  out: []                  # what explicitly NOT to do — the anti-drift guard
+  in: []                   # 本次要做
+  out: []                  # 本次明确不做 — 防止范围蔓延
 
-# Checkpoints are key-uncertainty stops, not progress logs (SPEC §3.3).
+# Checkpoints are key-uncertainty stops, not progress logs.
 checkpoints:
   - id: cp-1
     type: direction        # direction | scope | risk | integration | pre_submit | custom
     name: ""
-    when: ""               # when to stop and confirm, e.g. "before editing code"
+    when: ""               # when to stop and confirm
     questions: []
     expectedEvidence: []
     status: pending        # pending | passed | failed | skipped
     notes: ""
 
-# Self-tests are the user's acceptance cases (SPEC §3.4). Manual or mapped to
-# automated tests. These are how we know the change is right.
+# Self-tests are the acceptance cases. These are how we know the change is right.
 selfTests:
   - id: st-1
     name: ""
@@ -47,7 +47,7 @@ selfTests:
     latestEvidence: null
     status: unknown        # unknown | passed | failed | skipped
 
-# Done criteria sit one level above self-tests: when can the task end? (SPEC §3.5)
+# Done criteria sit one level above self-tests: when can the loop end?
 doneCriteria:
   required: []
   optional: []

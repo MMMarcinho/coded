@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { codedPaths, contractPath, findCodedRoot, taskDir } from "../paths.js";
-import { appendEvent, loadConfig, loadMeta, resolveTaskId } from "../store.js";
+import { codedPaths, findCodedRoot, loopContractPath, loopDir } from "../paths.js";
+import { appendEvent, loadConfig, loadLoop, resolveLoopId } from "../store.js";
 import {
   loadContract,
   saveContract,
@@ -19,7 +19,7 @@ export interface VerifyOptions {
   interactive?: boolean;
 }
 
-// `coded verify [task]` — proactively confirm the contract's self-tests and
+// `coded verify [loop]` — proactively confirm the contract's self-tests and
 // checkpoints after coding. Phase 1: coded runs command-backed self-tests.
 // Phase 2: coded wakes the agent to confirm the rest, then writes results back.
 export function cmdVerify(taskRef: string | undefined, opts: VerifyOptions): void {
@@ -27,9 +27,9 @@ export function cmdVerify(taskRef: string | undefined, opts: VerifyOptions): voi
   if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
   const paths = codedPaths(root);
   const config = loadConfig(paths);
-  const taskId = resolveTaskId(paths, taskRef);
-  const meta = loadMeta(paths, taskId);
-  const cPath = contractPath(paths, taskId);
+  const loopId = resolveLoopId(paths, taskRef);
+  const meta = loadLoop(paths, loopId);
+  const cPath = loopContractPath(paths, loopId);
   const contract = loadContract(cPath);
 
   // Phase 1 — run what coded can run.
@@ -49,7 +49,7 @@ export function cmdVerify(taskRef: string | undefined, opts: VerifyOptions): voi
   }
 
   const prompt = buildConfirmPrompt(contract, pending);
-  const packsDir = join(taskDir(paths, taskId), "packs");
+  const packsDir = join(loopDir(paths, loopId), "packs");
   mkdirSync(packsDir, { recursive: true });
   const packPath = join(packsDir, `confirm-${stamp()}.md`);
   writeFileSync(packPath, prompt);

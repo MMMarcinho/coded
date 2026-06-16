@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseAgentResults, toSelfTestStatus } from "../src/confirm.js";
 import { pendingForAgent, runCommandSelfTests } from "../src/runner.js";
-import type { TaskContract } from "../src/types.js";
+import type { LoopContract } from "../src/types.js";
 
 describe("parseAgentResults", () => {
   it("extracts the last yaml block's results and checkpoints", () => {
@@ -42,8 +42,8 @@ describe("parseAgentResults", () => {
 describe("runCommandSelfTests", () => {
   it("runs command tests and writes pass/fail back", () => {
     const root = mkdtempSync(join(tmpdir(), "coded-run-"));
-    const contract: TaskContract = {
-      goal: { summary: "x" },
+    const contract: LoopContract = {
+      requirement: { summary: "x" },
       selfTests: [
         { id: "st-1", name: "passes", command: "exit 0" },
         { id: "st-2", name: "fails", command: "exit 3" },

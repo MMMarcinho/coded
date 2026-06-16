@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import type { SelfTest, TaskContract } from "./types.js";
+import type { LoopContract, SelfTest } from "./types.js";
 
 export interface RunResult {
   id: string;
@@ -17,7 +17,7 @@ function firstLine(s: string, max = 200): string {
 // Phase 1 of `coded verify`: run every self-test that has a `command`, in the
 // project root, and write pass/fail + evidence straight back to the contract.
 // Self-tests without a command are left for the agent to confirm.
-export function runCommandSelfTests(projectRoot: string, contract: TaskContract): RunResult[] {
+export function runCommandSelfTests(projectRoot: string, contract: LoopContract): RunResult[] {
   const results: RunResult[] = [];
   for (const test of contract.selfTests ?? []) {
     if (!test.command) continue;
@@ -44,7 +44,7 @@ function applyResult(test: SelfTest, passed: boolean, evidence: string): void {
 }
 
 // Self-tests still needing confirmation: no command, and not yet resolved.
-export function pendingForAgent(contract: TaskContract): SelfTest[] {
+export function pendingForAgent(contract: LoopContract): SelfTest[] {
   return (contract.selfTests ?? []).filter(
     (t) => !t.command && t.status !== "passed" && t.status !== "skipped",
   );

@@ -1,11 +1,11 @@
 import { parse } from "yaml";
-import type { SelfTest, TaskContract } from "./types.js";
+import type { LoopContract, SelfTest } from "./types.js";
 
 // Build the confirmation prompt coded hands the agent: the goal/scope, the
 // self-tests still needing judgement, the checkpoints, and a strict output
 // schema coded can parse back. This is the "proactively wake the agent to
 // confirm" step — the agent runs repro steps / inspects the diff and reports.
-export function buildConfirmPrompt(contract: TaskContract, pending: SelfTest[]): string {
+export function buildConfirmPrompt(contract: LoopContract, pending: SelfTest[]): string {
   const lines: string[] = [];
   lines.push("# coded — Confirm self-tests");
   lines.push("");
@@ -13,7 +13,7 @@ export function buildConfirmPrompt(contract: TaskContract, pending: SelfTest[]):
   lines.push("Run repro steps or commands where you can; inspect the implementation otherwise.");
   lines.push("Do NOT change code in this step — only verify and report.");
   lines.push("");
-  lines.push(`Goal: ${contract.goal?.summary ?? ""}`);
+  lines.push(`Requirement: ${contract.requirement?.summary ?? ""}`);
   if (contract.scope?.in?.length) lines.push(`Scope in: ${contract.scope.in.join("; ")}`);
   if (contract.scope?.out?.length) lines.push(`Scope out (must not change): ${contract.scope.out.join("; ")}`);
   lines.push("");

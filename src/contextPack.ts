@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { stringify } from "yaml";
-import type { CodedConfig, StageKind, TaskContract, TaskMeta } from "./types.js";
+import type { CodedConfig, LoopContract, LoopMeta, StageKind } from "./types.js";
 import type { CodedPaths } from "./paths.js";
 
 function readIfExists(path: string): string | null {
@@ -29,9 +29,9 @@ function section(title: string, body: string | null | undefined): string {
   return `## ${title}\n${body.trim()}\n\n`;
 }
 
-function contractYaml(contract: TaskContract): string {
-  // Show the contract compactly: goal, scope, self-tests, done criteria.
-  const view: Record<string, unknown> = { goal: contract.goal };
+function contractYaml(contract: LoopContract): string {
+  // Show the contract compactly: requirement, scope, self-tests, done criteria.
+  const view: Record<string, unknown> = { requirement: contract.requirement };
   if (contract.context) view.context = contract.context;
   if (contract.scope) view.scope = contract.scope;
   if (contract.checkpoints?.length) view.checkpoints = contract.checkpoints;
@@ -43,8 +43,8 @@ function contractYaml(contract: TaskContract): string {
 export interface PackInput {
   paths: CodedPaths;
   config: CodedConfig;
-  meta: TaskMeta;
-  contract: TaskContract;
+  meta: LoopMeta;
+  contract: LoopContract;
   stage: StageKind;
   userInstruction?: string;
 }
@@ -63,7 +63,7 @@ export function buildContextPack(input: PackInput): BuiltPack {
   let out = "";
   out += `# coded Context Pack\n\n`;
   out += section(
-    "Task",
+    "Loop",
     [
       `- Title: ${meta.title}`,
       `- Id: ${meta.id}`,
@@ -71,7 +71,7 @@ export function buildContextPack(input: PackInput): BuiltPack {
       `- Stage: ${stage}`,
     ].join("\n"),
   );
-  out += section("Task Contract", "```yaml\n" + contractYaml(contract) + "\n```");
+  out += section("Loop Contract", "```yaml\n" + contractYaml(contract) + "\n```");
   if (knowledge.length) out += section("Relevant Project Knowledge", knowledge.join("\n\n"));
   out += section("Stage Instructions", loadStagePrompt(paths, stage));
   out += section(

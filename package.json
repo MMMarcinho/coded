@@ -1,7 +1,7 @@
 {
   "name": "coded",
-  "version": "0.1.0",
-  "description": "Task contract, checkpoint, and completion layer for Claude Code / Codex.",
+  "version": "0.2.0",
+  "description": "Loop 工程管理工具 — 记录需求研发的全流程。",
   "type": "module",
   "bin": {
     "coded": "dist/index.js"
