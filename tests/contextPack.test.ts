@@ -27,7 +27,7 @@ const config: CodedConfig = {
 const meta: LoopMeta = {
   id: "demo-1",
   title: "Demo",
-  status: "implementing",
+  status: "in_progress",
   workflow: "default",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

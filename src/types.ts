@@ -1,15 +1,12 @@
-// Data shapes for coded — a Loop engineering management tool.
-// Mirrors the Loop Contract model in SPEC §3 and the templates under .coded/templates/.
+// Data shapes for coded — a state-management tool for long-running agent tasks.
+// Mirrors the Loop Contract model and the templates under .coded/templates/.
 
 export type StageKind =
-  | "analyze"
-  | "design"
+  | "explore"
   | "plan"
   | "implement"
-  | "test"
   | "verify"
   | "review"
-  | "refine"
   | "checkpoint"
   | "complete";
 
@@ -31,23 +28,9 @@ export type CheckpointType =
   | "pre_submit"
   | "custom";
 
-export type RequirementSource =
-  | "product"
-  | "tech_debt"
-  | "bug"
-  | "optimization"
-  | "other";
-
-export type LoopPriority = "p0" | "p1" | "p2" | "p3";
-
-// A Requirement is the driving force behind every Loop — it captures what needs to
-// be built and why, with source tracing and stakeholder context.
+// A Requirement describes what the loop should achieve.
 export interface Requirement {
   summary: string;
-  source?: RequirementSource;
-  priority?: LoopPriority;
-  detail?: string;
-  stakeholders?: string[];
   userVisibleResults?: string[];
   deliverables?: string[];
   successSignals?: string[];
@@ -83,8 +66,6 @@ export interface SelfTest {
   name: string;
   type?: SelfTestType;
   required?: boolean;
-  // A shell command coded can run to verify this test automatically. When
-  // present, `coded verify` runs it and marks pass/fail by exit code.
   command?: string;
   preconditions?: string[];
   steps?: string[];
@@ -99,7 +80,7 @@ export interface DoneCriteria {
   requiresUserConfirmation?: string[];
 }
 
-// The full loop contract — one complete requirement-to-delivery cycle.
+// The full loop contract — defines what to do and how to know it's done.
 export interface LoopContract {
   requirement: Requirement;
   context?: LoopContext;
@@ -109,25 +90,20 @@ export interface LoopContract {
   doneCriteria?: DoneCriteria;
 }
 
-// LoopStatus tracks where a loop is in its lifecycle.
 export type LoopStatus =
-  | "drafting"
-  | "analyzing"
-  | "designing"
-  | "implementing"
-  | "testing"
-  | "reviewing"
+  | "created"
+  | "in_progress"
+  | "verifying"
+  | "blocked"
   | "done"
   | "cancelled";
 
-// runs/<id>/loop.json — lightweight loop metadata, separate from the contract.
+// runs/<id>/loop.json — lightweight loop metadata.
 export interface LoopMeta {
   id: string;
   title: string;
   status: LoopStatus;
   workflow: string;
-  // The agent that implemented this loop, so verify/review can cross-check with
-  // the other agent for an independent perspective.
   implementAgent?: Agent;
   createdAt: string;
   updatedAt: string;
@@ -153,15 +129,3 @@ export interface CodedConfig {
   };
   assets: Record<string, string>;
 }
-
-// Backward-compat aliases so downstream code can migrate incrementally.
-// Remove once all consumers have switched to the new names.
-
-/** @deprecated Use LoopContract instead. */
-export type TaskContract = LoopContract;
-
-/** @deprecated Use LoopMeta instead. */
-export type TaskMeta = LoopMeta;
-
-/** @deprecated Use LoopEvent instead. */
-export type TaskEvent = LoopEvent;

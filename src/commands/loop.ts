@@ -5,13 +5,11 @@ import { createInterface, type Interface } from "node:readline/promises";
 import { codedPaths, findCodedRoot, loopContractPath, loopDir } from "../paths.js";
 import { loadConfig, newLoopId, saveLoop } from "../store.js";
 import { saveContract } from "../contract.js";
-import type { LoopContract, LoopMeta, RequirementSource, LoopPriority } from "../types.js";
+import type { LoopContract, LoopMeta } from "../types.js";
 
 export interface LoopOptions {
   workflow?: string;
   requirement?: string;
-  source?: string;
-  priority?: string;
 }
 
 export async function cmdLoop(title: string | undefined, opts: LoopOptions): Promise<void> {
@@ -37,7 +35,7 @@ export async function cmdLoop(title: string | undefined, opts: LoopOptions): Pro
   const meta: LoopMeta = {
     id,
     title: loopTitle,
-    status: "drafting",
+    status: "created",
     workflow: opts.workflow ?? config.defaultWorkflow ?? "default",
     createdAt: now,
     updatedAt: now,
@@ -47,23 +45,15 @@ export async function cmdLoop(title: string | undefined, opts: LoopOptions): Pro
 
   console.log(`Created loop ${id}`);
   console.log(`  requirement: ${meta.title}`);
-  if (contract.requirement.source) console.log(`  source: ${contract.requirement.source}`);
-  if (contract.requirement.priority) console.log(`  priority: ${contract.requirement.priority}`);
   console.log("");
-  console.log("Ready — `coded prompt --stage analyze` will launch an agent for 需求分析.");
+  console.log("Ready — `coded prompt --stage implement` will launch an agent.");
   console.log("Optional: edit the contract to add scope/self-tests:");
   console.log(`  ${cPath}`);
 }
 
 function buildLoopContract(title: string, opts: LoopOptions): LoopContract {
   return {
-    requirement: {
-      summary: opts.requirement ?? title,
-      source: (opts.source as RequirementSource) ?? undefined,
-      priority: (opts.priority as LoopPriority) ?? undefined,
-      userVisibleResults: [],
-      deliverables: [],
-    },
+    requirement: { summary: opts.requirement ?? title, userVisibleResults: [], deliverables: [] },
     context: { reason: "", relatedFiles: [] },
     scope: { in: [], out: [] },
     checkpoints: [],
@@ -79,40 +69,30 @@ async function promptForLoop(): Promise<LoopContract> {
 
   const rl = createInterface({ input, output });
   try {
-    const summary = await askRequired(rl, "需求是什么？");
-    const source = await askChoice(rl, "需求来源", ["product", "tech_debt", "bug", "optimization", "other"]);
-    const priority = await askChoice(rl, "优先级", ["p0", "p1", "p2", "p3"]);
-    const detail = await ask(rl, "需求详细描述（可选）：");
-    const reason = await ask(rl, "为什么要做这个需求？");
-    const currentState = await ask(rl, "当前现状是什么？");
+    const summary = await askRequired(rl, "What should this loop achieve?");
+    const reason = await ask(rl, "Why is this needed?");
+    const currentBehavior = await ask(rl, "What is the current state?");
 
-    console.log("范围 (scope in)：每输入一项回车创建一个，空回车结束。");
-    const scopeIn = await collectList(rl, "要做");
+    console.log("Scope in — one per line, empty to finish:");
+    const scopeIn = await collectList(rl, "in");
 
-    console.log("非目标 (scope out)：每输入一项回车创建一个，空回车结束。");
-    const scopeOut = await collectList(rl, "不做");
+    console.log("Scope out — one per line, empty to finish:");
+    const scopeOut = await collectList(rl, "out");
 
-    console.log("Checkpoints：每输入一项回车创建一个，空回车结束。");
+    console.log("Checkpoints — one per line, empty to finish:");
     const checkpoints = await collectList(rl, "checkpoint");
 
-    console.log("自测用例 (self-tests)：每输入一项回车创建一个，空回车结束。");
+    console.log("Self-tests — one per line, empty to finish:");
     const selfTests = await collectList(rl, "self-test");
 
-    console.log("完成标准 (done criteria)：每输入一项回车创建一个，空回车结束。");
+    console.log("Done criteria — one per line, empty to finish:");
     const doneCriteria = await collectList(rl, "done");
 
     return {
-      requirement: {
-        summary,
-        source: source as RequirementSource | undefined,
-        priority: priority as LoopPriority | undefined,
-        detail: detail || undefined,
-        userVisibleResults: [],
-        deliverables: [],
-      },
+      requirement: { summary, userVisibleResults: [], deliverables: [] },
       context: {
         reason,
-        currentBehavior: currentState || null,
+        currentBehavior: currentBehavior || null,
         relatedFiles: [],
       },
       scope: { in: scopeIn, out: scopeOut },
@@ -148,16 +128,6 @@ async function askRequired(rl: Interface, question: string): Promise<string> {
   while (true) {
     const answer = await ask(rl, question);
     if (answer) return answer;
-  }
-}
-
-async function askChoice(rl: Interface, question: string, options: string[]): Promise<string> {
-  const prompt = `${question} (${options.join("/")})：`;
-  while (true) {
-    const answer = await ask(rl, prompt);
-    if (!answer) return "";
-    if (options.includes(answer.toLowerCase())) return answer.toLowerCase();
-    console.log(`  请输入: ${options.join(", ")}`);
   }
 }
 

@@ -22,9 +22,6 @@ export function cmdStatus(taskRef?: string): void {
     const contract = loadContract(cPath);
     const req = contract.requirement;
     console.log(`\nRequirement  ${req?.summary ?? "(unset)"}`);
-    if (req?.source) console.log(`Source       ${req.source}`);
-    if (req?.priority) console.log(`Priority     ${req.priority}`);
-    if (req?.detail) console.log(`Detail       ${req.detail}`);
     const inScope = contract.scope?.in ?? [];
     const outScope = contract.scope?.out ?? [];
     if (inScope.length) console.log(`Scope in     ${inScope.join("; ")}`);

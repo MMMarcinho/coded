@@ -43,7 +43,7 @@ program
   .command("prompt")
   .alias("run")
   .argument("[loop]", "loop id (default: most recent)")
-  .requiredOption("-s, --stage <stage>", "stage: analyze|design|plan|implement|test|verify|review|refine|checkpoint|complete")
+  .requiredOption("-s, --stage <stage>", "stage: explore|plan|implement|verify|review|checkpoint|complete")
   .option("-a, --agent <agent>", "claude-code | codex")
   .option("-m, --message <text>", "extra instruction for this session")
   .option("--print", "print the prompt instead of launching an agent")

@@ -5,30 +5,17 @@ import { appendEvent, loadConfig, loadLoop, resolveLoopId, setStatus } from "../
 import { loadContract, validateContract } from "../contract.js";
 import { buildContextPack } from "../contextPack.js";
 import { launchAgent, resolveAgent } from "../launch.js";
-import type { LoopStatus, StageKind } from "../types.js";
+import type { StageKind } from "../types.js";
 
 const STAGES: StageKind[] = [
-  "analyze",
-  "design",
+  "explore",
   "plan",
   "implement",
-  "test",
   "verify",
   "review",
-  "refine",
   "checkpoint",
   "complete",
 ];
-
-// Map stage to the lifecycle status the loop should transition to.
-const STAGE_STATUS: Partial<Record<StageKind, LoopStatus>> = {
-  analyze: "analyzing",
-  design: "designing",
-  implement: "implementing",
-  test: "testing",
-  verify: "testing",
-  review: "reviewing",
-};
 
 export interface PromptOptions {
   stage: string;
@@ -82,9 +69,7 @@ export function cmdPrompt(taskRef: string | undefined, opts: PromptOptions): voi
 
   if (result.launched) {
     appendEvent(paths, meta, { kind: "prompt", stage, agent, note: `launched ${result.binary}` });
-    const nextStatus = STAGE_STATUS[stage];
-    if (nextStatus && meta.status !== "done") setStatus(paths, meta, nextStatus);
-    else if (meta.status === "drafting") setStatus(paths, meta, "analyzing");
+    if (meta.status === "created") setStatus(paths, meta, "in_progress");
     return;
   }
 
@@ -96,7 +81,5 @@ export function cmdPrompt(taskRef: string | undefined, opts: PromptOptions): voi
   console.log(`# Copy the prompt above into ${result.binary}, or run:`);
   console.log(`#   ${result.binary} "$(cat ${packPath})"`);
   appendEvent(paths, meta, { kind: "prompt", stage, agent, note: `printed (${result.binary})` });
-  const nextStatus = STAGE_STATUS[stage];
-  if (nextStatus && meta.status !== "done") setStatus(paths, meta, nextStatus);
-  else if (meta.status === "drafting") setStatus(paths, meta, "analyzing");
+  if (meta.status === "created") setStatus(paths, meta, "in_progress");
 }
