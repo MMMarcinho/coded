@@ -5,12 +5,18 @@
 ## 安装
 
 ```bash
+npm install -g coded
+```
+
+安装后会在全局注册 `coded` 命令。要求 Node >= 18。
+
+### 从源码安装
+
+```bash
+git clone <repo-url>
 cd coded
-
 npm install
-
 npm run build
-
 npm link
 ```
 
