@@ -5,7 +5,13 @@
 ## 安装
 
 ```bash
-cd coded && npm install && npm run build && npm link
+cd coded
+
+npm install
+
+npm run build
+
+npm link
 ```
 
 ## 用法
