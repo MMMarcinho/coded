@@ -36,8 +36,6 @@ coded selftest pass st-1 "手动验证通过"             # 标记通过
 coded checkpoint --record agent-output.yaml        # 记录 CC 输出的 checkpoint
 ```
 
-CC 没干完或者断了，下次直接用同样的 `coded prompt --stage implement` 重新唤起继续。
-
 完成后收尾：
 
 ```bash
