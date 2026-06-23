@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   addSelfTest,
+  addStep,
   blockingSelfTests,
+  nextStep,
   selfTestTally,
   setSelfTestStatus,
+  setStepStatus,
+  stepTally,
   validateContract,
 } from "../src/contract.js";
 import { slugify } from "../src/store.js";
@@ -75,6 +79,49 @@ describe("self-test mutations", () => {
   it("throws on unknown self-test id", () => {
     const c: LoopContract = { requirement: { summary: "x" }, selfTests: [] };
     expect(() => setSelfTestStatus(c, "st-9", "passed")).toThrow(/No self-test/);
+  });
+});
+
+describe("steps (the working plan)", () => {
+  it("adds steps with sequential ids, defaulting to todo", () => {
+    const c: LoopContract = { requirement: { summary: "x" } };
+    expect(addStep(c, "first").id).toBe("s-1");
+    expect(addStep(c, "second").status).toBe("todo");
+    expect(c.steps).toHaveLength(2);
+  });
+
+  it("picks the in-progress step as next, else the first todo", () => {
+    const c: LoopContract = {
+      requirement: { summary: "x" },
+      steps: [
+        { id: "s-1", text: "a", status: "done" },
+        { id: "s-2", text: "b", status: "todo" },
+        { id: "s-3", text: "c", status: "todo" },
+      ],
+    };
+    expect(nextStep(c)!.id).toBe("s-2");
+    setStepStatus(c, "s-3", "doing");
+    expect(nextStep(c)!.id).toBe("s-3");
+  });
+
+  it("returns null for next once every step is done, and tallies", () => {
+    const c: LoopContract = {
+      requirement: { summary: "x" },
+      steps: [
+        { id: "s-1", text: "a", status: "done" },
+        { id: "s-2", text: "b", status: "blocked" },
+      ],
+    };
+    setStepStatus(c, "s-2", "blocked", "waiting on api");
+    expect(c.steps![1].note).toBe("waiting on api");
+    expect(stepTally(c)).toContain("1/2 done");
+    setStepStatus(c, "s-2", "done");
+    expect(nextStep(c)).toBeNull();
+  });
+
+  it("throws on unknown step id", () => {
+    const c: LoopContract = { requirement: { summary: "x" }, steps: [] };
+    expect(() => setStepStatus(c, "s-9", "done")).toThrow(/No step/);
   });
 });
 

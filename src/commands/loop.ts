@@ -46,9 +46,11 @@ export async function cmdLoop(title: string | undefined, opts: LoopOptions): Pro
   console.log(`Created loop ${id}`);
   console.log(`  requirement: ${meta.title}`);
   console.log("");
-  console.log("Ready — `coded prompt --stage implement` will launch an agent.");
-  console.log("Optional: edit the contract to add scope/self-tests:");
-  console.log(`  ${cPath}`);
+  console.log("Next:");
+  console.log('  coded step add "<first step>"   # sketch the plan');
+  console.log("  coded context                   # load it into your session");
+  console.log("  coded resume                    # see where things stand");
+  console.log(`Edit the contract to add scope/self-tests: ${cPath}`);
 }
 
 function buildLoopContract(title: string, opts: LoopOptions): LoopContract {
@@ -56,6 +58,7 @@ function buildLoopContract(title: string, opts: LoopOptions): LoopContract {
     requirement: { summary: opts.requirement ?? title, userVisibleResults: [], deliverables: [] },
     context: { reason: "", relatedFiles: [] },
     scope: { in: [], out: [] },
+    steps: [],
     checkpoints: [],
     selfTests: [],
     doneCriteria: { required: [], optional: [], requiresUserConfirmation: [] },
@@ -79,6 +82,9 @@ async function promptForLoop(): Promise<LoopContract> {
     console.log("Scope out — one per line, empty to finish:");
     const scopeOut = await collectList(rl, "out");
 
+    console.log("Plan steps — one per line, empty to finish:");
+    const steps = await collectList(rl, "step");
+
     console.log("Checkpoints — one per line, empty to finish:");
     const checkpoints = await collectList(rl, "checkpoint");
 
@@ -96,6 +102,11 @@ async function promptForLoop(): Promise<LoopContract> {
         relatedFiles: [],
       },
       scope: { in: scopeIn, out: scopeOut },
+      steps: steps.map((text, index) => ({
+        id: `s-${index + 1}`,
+        text,
+        status: "todo" as const,
+      })),
       checkpoints: checkpoints.map((name, index) => ({
         id: `cp-${index + 1}`,
         type: "custom",

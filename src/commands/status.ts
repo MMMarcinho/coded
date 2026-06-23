@@ -3,7 +3,15 @@ import { join } from "node:path";
 import { parse } from "yaml";
 import { codedPaths, findCodedRoot, loopDir } from "../paths.js";
 import { loadLoop, resolveLoopId } from "../store.js";
-import { loadContract, selfTestTally, summarizeSelfTests } from "../contract.js";
+import {
+  loadContract,
+  selfTestTally,
+  stepTally,
+  summarizeSelfTests,
+  summarizeSteps,
+} from "../contract.js";
+import { emit } from "../output.js";
+import { recentNotes } from "./note.js";
 
 export function cmdStatus(taskRef?: string): void {
   const root = findCodedRoot();
@@ -12,42 +20,71 @@ export function cmdStatus(taskRef?: string): void {
   const loopId = resolveLoopId(paths, taskRef);
   const meta = loadLoop(paths, loopId);
   const dir = loopDir(paths, loopId);
-
-  console.log(`Loop    ${meta.id}`);
-  console.log(`Title   ${meta.title}`);
-  console.log(`Status  ${meta.status}   Workflow ${meta.workflow}`);
-
   const cPath = join(dir, "contract.yaml");
-  if (existsSync(cPath)) {
-    const contract = loadContract(cPath);
-    const req = contract.requirement;
-    console.log(`\nRequirement  ${req?.summary ?? "(unset)"}`);
-    const inScope = contract.scope?.in ?? [];
-    const outScope = contract.scope?.out ?? [];
-    if (inScope.length) console.log(`Scope in     ${inScope.join("; ")}`);
-    if (outScope.length) console.log(`Scope out    ${outScope.join("; ")}`);
-    console.log(`\nSelf-tests (${selfTestTally(contract)}):\n${summarizeSelfTests(contract)}`);
-  }
+  const contract = existsSync(cPath) ? loadContract(cPath) : null;
 
-  // Latest checkpoint + drift.
+  const latestCheckpoint = readLatestCheckpoint(dir);
+  const completion = readCompletion(dir);
+  const notes = recentNotes(meta).map((e) => ({ at: e.at, text: e.note ?? "" }));
+
+  emit(
+    {
+      id: meta.id,
+      title: meta.title,
+      status: meta.status,
+      workflow: meta.workflow,
+      requirement: contract?.requirement?.summary ?? null,
+      scope: { in: contract?.scope?.in ?? [], out: contract?.scope?.out ?? [] },
+      steps: contract ? { tally: stepTally(contract), items: contract.steps ?? [] } : null,
+      selfTests: contract ? { tally: selfTestTally(contract), items: contract.selfTests ?? [] } : null,
+      latestCheckpoint,
+      completion,
+      recentNotes: notes,
+      events: meta.history.length,
+    },
+    () => {
+      console.log(`Loop    ${meta.id}`);
+      console.log(`Title   ${meta.title}`);
+      console.log(`Status  ${meta.status}   Workflow ${meta.workflow}`);
+
+      if (contract) {
+        console.log(`\nRequirement  ${contract.requirement?.summary ?? "(unset)"}`);
+        const inScope = contract.scope?.in ?? [];
+        const outScope = contract.scope?.out ?? [];
+        if (inScope.length) console.log(`Scope in     ${inScope.join("; ")}`);
+        if (outScope.length) console.log(`Scope out    ${outScope.join("; ")}`);
+        console.log(`\nPlan (${stepTally(contract)}):\n${summarizeSteps(contract)}`);
+        console.log(`\nSelf-tests (${selfTestTally(contract)}):\n${summarizeSelfTests(contract)}`);
+      }
+
+      if (latestCheckpoint) {
+        console.log(`\nLatest checkpoint (${latestCheckpoint.file}):`);
+        console.log(`  drift: ${latestCheckpoint.drift} -> ${latestCheckpoint.recommendation}`);
+      }
+      if (completion) console.log(`\nCompletion: ${completion.status} -> ${completion.recommendation}`);
+      if (notes.length) {
+        console.log(`\nRecent notes:`);
+        for (const n of notes) console.log(`  · ${n.text}`);
+      }
+
+      console.log(`\nHistory: ${meta.history.length} events. Files under ${dir}`);
+    },
+  );
+}
+
+function readLatestCheckpoint(dir: string) {
   const cpDir = join(dir, "checkpoints");
-  if (existsSync(cpDir)) {
-    const files = readdirSync(cpDir)
-      .filter((f) => f.endsWith(".yaml"))
-      .sort();
-    if (files.length) {
-      const latest = parse(readFileSync(join(cpDir, files[files.length - 1]), "utf8")) ?? {};
-      const drift = latest.drift ?? {};
-      console.log(`\nLatest checkpoint (${files[files.length - 1]}):`);
-      console.log(`  drift: ${drift.status ?? "unknown"} -> ${drift.recommendation ?? "n/a"}`);
-    }
-  }
+  if (!existsSync(cpDir)) return undefined;
+  const files = readdirSync(cpDir).filter((f) => f.endsWith(".yaml")).sort();
+  if (!files.length) return undefined;
+  const file = files[files.length - 1];
+  const drift = (parse(readFileSync(join(cpDir, file), "utf8")) ?? {}).drift ?? {};
+  return { file, drift: drift.status ?? "unknown", recommendation: drift.recommendation ?? "n/a" };
+}
 
-  const completion = join(dir, "completion.yaml");
-  if (existsSync(completion)) {
-    const c = parse(readFileSync(completion, "utf8")) ?? {};
-    console.log(`\nCompletion: ${c.status ?? "unknown"} -> ${c.recommendation ?? "n/a"}`);
-  }
-
-  console.log(`\nHistory: ${meta.history.length} events. Files under ${dir}`);
+function readCompletion(dir: string) {
+  const p = join(dir, "completion.yaml");
+  if (!existsSync(p)) return undefined;
+  const c = parse(readFileSync(p, "utf8")) ?? {};
+  return { status: c.status ?? "unknown", recommendation: c.recommendation ?? "n/a" };
 }

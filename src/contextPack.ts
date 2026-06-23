@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { stringify } from "yaml";
 import type { CodedConfig, LoopContract, LoopMeta, StageKind } from "./types.js";
 import type { CodedPaths } from "./paths.js";
+import { nextStep, stepTally, summarizeSteps } from "./contract.js";
 
 function readIfExists(path: string): string | null {
   return existsSync(path) ? readFileSync(path, "utf8") : null;
@@ -30,10 +31,11 @@ function section(title: string, body: string | null | undefined): string {
 }
 
 function contractYaml(contract: LoopContract): string {
-  // Show the contract compactly: requirement, scope, self-tests, done criteria.
+  // Show the contract compactly: requirement, scope, steps, self-tests, done.
   const view: Record<string, unknown> = { requirement: contract.requirement };
   if (contract.context) view.context = contract.context;
   if (contract.scope) view.scope = contract.scope;
+  if (contract.steps?.length) view.steps = contract.steps;
   if (contract.checkpoints?.length) view.checkpoints = contract.checkpoints;
   if (contract.selfTests?.length) view.selfTests = contract.selfTests;
   if (contract.doneCriteria) view.doneCriteria = contract.doneCriteria;
@@ -71,6 +73,16 @@ export function buildContextPack(input: PackInput): BuiltPack {
       `- Stage: ${stage}`,
     ].join("\n"),
   );
+  const next = nextStep(contract);
+  out += section(
+    "Working Plan",
+    [
+      `Steps: ${stepTally(contract)}`,
+      next ? `Next step: ${next.id} ${next.text}` : "Next step: (none — plan is empty or complete)",
+      "",
+      summarizeSteps(contract),
+    ].join("\n"),
+  );
   out += section("Loop Contract", "```yaml\n" + contractYaml(contract) + "\n```");
   if (knowledge.length) out += section("Relevant Project Knowledge", knowledge.join("\n\n"));
   out += section("Stage Instructions", loadStagePrompt(paths, stage));
@@ -78,9 +90,10 @@ export function buildContextPack(input: PackInput): BuiltPack {
     "Rules For This Session",
     [
       "- Stay within scope.in; do not touch scope.out without flagging it.",
+      "- Work the plan: pick up `Next step`, and keep step status current with `coded step`.",
       "- Treat selfTests as the definition of correct; run or describe them.",
-      "- coded does not prescribe how you implement — choose your own path.",
-      "- End with the structured output requested by the stage instructions.",
+      "- coded only stores state — it does not prescribe how you implement.",
+      "- Record decisions worth keeping with `coded note` so the next session sees them.",
     ].join("\n"),
   );
   out += section("User's New Instruction", input.userInstruction ?? "(none — follow the stage)");

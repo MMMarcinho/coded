@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { parse, stringify } from "yaml";
-import type { LoopContract, SelfTest, SelfTestType } from "./types.js";
+import type { LoopContract, SelfTest, SelfTestType, Step, StepStatus } from "./types.js";
 
 export function loadContract(path: string): LoopContract {
   const raw = readFileSync(path, "utf8");
@@ -71,6 +71,70 @@ export function blockingSelfTests(c: LoopContract): SelfTest[] {
     (t) => t.required && t.status !== "passed" && t.status !== "skipped",
   );
 }
+
+// --- Steps: the working plan / "what's next" backbone ------------------------
+
+export function addStep(contract: LoopContract, text: string): Step {
+  const steps = contract.steps ?? (contract.steps = []);
+  const n = steps.length + 1;
+  const step: Step = { id: `s-${n}`, text, status: "todo" };
+  steps.push(step);
+  return step;
+}
+
+export function setStepStatus(
+  contract: LoopContract,
+  id: string,
+  status: StepStatus,
+  note?: string,
+): Step {
+  const step = (contract.steps ?? []).find((s) => s.id === id);
+  if (!step) {
+    const known = (contract.steps ?? []).map((s) => s.id).join(", ") || "none";
+    throw new Error(`No step '${id}'. Known ids: ${known}.`);
+  }
+  step.status = status;
+  if (note !== undefined) step.note = note || undefined;
+  return step;
+}
+
+// The step a fresh session should pick up: the one in progress, else the first
+// not-yet-done step. null once every step is done (or there are no steps).
+export function nextStep(c: LoopContract): Step | null {
+  const steps = c.steps ?? [];
+  return (
+    steps.find((s) => s.status === "doing") ??
+    steps.find((s) => s.status === "todo") ??
+    steps.find((s) => s.status === "blocked") ??
+    null
+  );
+}
+
+// "2/5 done (1 in progress, 1 blocked)" — a compact plan health line.
+export function stepTally(c: LoopContract): string {
+  const steps = c.steps ?? [];
+  if (steps.length === 0) return "no steps yet";
+  const done = steps.filter((s) => s.status === "done").length;
+  const doing = steps.filter((s) => s.status === "doing").length;
+  const blocked = steps.filter((s) => s.status === "blocked").length;
+  const extra = [doing && `${doing} in progress`, blocked && `${blocked} blocked`].filter(Boolean);
+  const tail = extra.length ? ` (${extra.join(", ")})` : "";
+  return `${done}/${steps.length} done${tail}`;
+}
+
+export function summarizeSteps(c: LoopContract): string {
+  const steps = c.steps ?? [];
+  if (steps.length === 0) return "  (none — add with `coded step add \"<text>\"`)";
+  const mark: Record<StepStatus, string> = { todo: " ", doing: "~", done: "x", blocked: "!" };
+  return steps
+    .map((s) => {
+      const note = s.note ? `  — ${s.note}` : "";
+      return `  [${mark[s.status]}] ${s.id} ${s.text}${note}`;
+    })
+    .join("\n");
+}
+
+// --- Validation --------------------------------------------------------------
 
 export interface ValidationResult {
   errors: string[];

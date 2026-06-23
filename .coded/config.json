@@ -1,16 +1,6 @@
 {
   "name": "coded",
   "defaultWorkflow": "default",
-  "defaultAgents": {
-    "analyze": "claude-code",
-    "design": "claude-code",
-    "implement": "claude-code",
-    "test": "codex",
-    "verify": "codex",
-    "review": "codex",
-    "refine": "claude-code",
-    "checkpoint": "claude-code"
-  },
   "context": {
     "defaultMode": "standard",
     "maxKnowledgeFiles": 6,

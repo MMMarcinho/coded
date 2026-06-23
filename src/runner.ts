@@ -14,9 +14,9 @@ function firstLine(s: string, max = 200): string {
   return line.slice(0, max);
 }
 
-// Phase 1 of `coded verify`: run every self-test that has a `command`, in the
+// `coded verify` step 1: run every self-test that has a `command`, in the
 // project root, and write pass/fail + evidence straight back to the contract.
-// Self-tests without a command are left for the agent to confirm.
+// Self-tests without a command are left for a human/session to confirm.
 export function runCommandSelfTests(projectRoot: string, contract: LoopContract): RunResult[] {
   const results: RunResult[] = [];
   for (const test of contract.selfTests ?? []) {
@@ -43,8 +43,9 @@ function applyResult(test: SelfTest, passed: boolean, evidence: string): void {
   test.latestEvidence = evidence;
 }
 
-// Self-tests still needing confirmation: no command, and not yet resolved.
-export function pendingForAgent(contract: LoopContract): SelfTest[] {
+// Self-tests still needing manual confirmation: no command coded can run, and
+// not yet resolved. The session/human confirms these with `coded selftest`.
+export function pendingManual(contract: LoopContract): SelfTest[] {
   return (contract.selfTests ?? []).filter(
     (t) => !t.command && t.status !== "passed" && t.status !== "skipped",
   );
