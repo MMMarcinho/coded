@@ -1,34 +1,31 @@
-import { codedPaths, findCodedRoot } from "../paths.js";
-import { listLoops } from "../store.js";
+import { listTasks, stepTally } from "../store.js";
 import { emit } from "../output.js";
 
 export interface ListOptions {
   status?: string;
 }
 
+// `coded list` — every task in the store, most recently touched first.
 export function cmdList(opts: ListOptions): void {
-  const root = findCodedRoot();
-  if (!root) throw new Error("No .coded/ found. Run `coded init` first.");
-  const paths = codedPaths(root);
-  let loops = listLoops(paths);
-  if (opts.status) loops = loops.filter((t) => t.status === opts.status);
+  let tasks = listTasks();
+  if (opts.status) tasks = tasks.filter((t) => t.status === opts.status);
 
   emit(
-    loops.map((t) => ({
+    tasks.map((t) => ({
       id: t.id,
-      title: t.title,
+      requirement: t.requirement,
       status: t.status,
-      workflow: t.workflow,
+      steps: stepTally(t),
       updatedAt: t.updatedAt,
     })),
     () => {
-      if (loops.length === 0) {
-        console.log('No loops. Create one with `coded loop "<需求标题>"`.');
+      if (tasks.length === 0) {
+        console.log('No tasks. Create one with `coded start "<需求>"`.');
         return;
       }
-      for (const t of loops) {
-        console.log(`${t.status.padEnd(14)} ${t.id}`);
-        console.log(`${" ".repeat(14)} ${t.title}`);
+      for (const t of tasks) {
+        console.log(`${t.status.padEnd(8)} ${t.id}  (${stepTally(t)})`);
+        console.log(`${" ".repeat(8)} ${t.requirement}`);
       }
     },
   );
