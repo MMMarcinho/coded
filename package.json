@@ -1,14 +1,13 @@
 {
   "name": "coded",
-  "version": "0.3.0",
-  "description": "外置的长程任务状态管理工具 — 让 Coding Agent 的长任务有个地方记进度，换会话能接着跑。",
+  "version": "0.4.0",
+  "description": "外置的长程任务状态管理工具 — 定义长任务，跟踪计划，换会话能接着跑。",
   "type": "module",
   "bin": {
     "coded": "dist/index.js"
   },
   "files": [
-    "dist",
-    "assets"
+    "dist"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -20,8 +19,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "yaml": "^2.5.1"
+    "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.7.0",
