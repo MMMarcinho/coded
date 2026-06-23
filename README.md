@@ -4,6 +4,36 @@
 
 设计原则：coded 只管状态，不碰编排。它不连 LLM、不 spawn 任何进程、不做流水线——就是状态文件 + 一组随手读写的命令，外加给 Agent 直接消费的机器可读输出（`--json`）。
 
+## 给 Coding Agent 的用法（先读这里）
+
+coded 是**给 Agent 用的**。它本身不会指挥你；是**你**在跑长任务时主动用它把状态写下来，这样换了会话、上下文被压缩、或人类回来接手时，下一棒能立刻知道"到哪了、下一步做什么"。
+
+一句话心法：**先 `resume` 再干活；每完成一步就写回状态；卡住/做决策当场记下来。**
+
+### 四个时机，固定动作
+
+| 时机 | 该做什么 | 命令 |
+|------|---------|------|
+| **① 会话开始** | 先把状态读回来，别凭空猜进度 | `coded resume --json`（无 loop 就 `coded loop "<需求>"` 新建） |
+| **② 动手前规划** | 把任务拆成可勾掉的步骤 | `coded step add "<步骤>"`（多条） |
+| **③ 干活中** | 状态实时跟手：开工/完成/卡住/关键决策 | `coded step start s-1` → `coded step done s-1 "<结果>"`；卡住 `coded step block s-1 "<原因>"`；做了重要决策 `coded note "<决策>"` |
+| **④ 收尾** | 定义并跑验收，全过才关 | `coded selftest add … --cmd …` → `coded verify` → `coded selftest pass <id>` → `coded done` |
+
+纪律（最重要的部分）：
+- **写回比漂亮更重要**：每完成/放弃一步，立刻 `coded step done/block`——不要攒到最后。状态文件就是交接记录。
+- **决策即记**：任何"为什么这么做/为什么不那么做"，一行 `coded note`，省得下个会话重新推导。
+- **会话快结束 / 上下文将满时**：先确保 `coded resume` 显示的"下一步"和实际一致，再停手。
+- **读状态用 `--json`**，自己解析字段；给状态写文字给人看时用普通输出。
+
+### 直接粘进 Agent 指令（CLAUDE.md / system prompt）
+
+> 本仓库用 `coded` 管理长程任务状态。约定：
+> 1. 开工前先跑 `coded resume --json` 恢复上下文；没有对应 loop 就 `coded loop "<需求>"` 建一个。
+> 2. 先用 `coded step add` 列出计划；开始某步 `coded step start <id>`，完成 `coded step done <id> "<结果>"`，卡住 `coded step block <id> "<原因>"`。
+> 3. 关键决策/发现随手 `coded note "<一句话>"`。
+> 4. 验收：`coded selftest add`/`coded verify`/`coded selftest pass`，全部必测通过后 `coded done`。
+> 5. 结束会话前确认 `coded resume` 里的"下一步"准确，便于下次接力。
+
 ## 安装
 
 ```bash
