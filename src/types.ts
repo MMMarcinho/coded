@@ -10,8 +10,6 @@ export type StageKind =
   | "checkpoint"
   | "complete";
 
-export type Agent = "claude-code" | "codex";
-
 export type SelfTestType =
   | "manual"
   | "unit"
@@ -80,11 +78,25 @@ export interface DoneCriteria {
   requiresUserConfirmation?: string[];
 }
 
+export type StepStatus = "todo" | "doing" | "done" | "blocked";
+
+// A Step is a single unit of the working plan — the "what's next" backbone that
+// lets a fresh session pick the task back up. Distinct from selfTests (which
+// answer "is it correct?") and checkpoints (which answer "should we stop and
+// confirm direction?"). Steps answer "where are we and what's left?".
+export interface Step {
+  id: string; // s-1, s-2, ...
+  text: string;
+  status: StepStatus;
+  note?: string; // e.g. why it is blocked, or a one-line result
+}
+
 // The full loop contract — defines what to do and how to know it's done.
 export interface LoopContract {
   requirement: Requirement;
   context?: LoopContext;
   scope?: LoopScope;
+  steps?: Step[];
   checkpoints?: ContractCheckpoint[];
   selfTests?: SelfTest[];
   doneCriteria?: DoneCriteria;
@@ -104,7 +116,6 @@ export interface LoopMeta {
   title: string;
   status: LoopStatus;
   workflow: string;
-  implementAgent?: Agent;
   createdAt: string;
   updatedAt: string;
   history: LoopEvent[];
@@ -112,16 +123,16 @@ export interface LoopMeta {
 
 export interface LoopEvent {
   at: string;
-  kind: "created" | "prompt" | "checkpoint" | "complete" | "status";
+  // "prompt" is kept for back-compat with loop.json files written by older
+  // versions; new context dumps record "context".
+  kind: "created" | "context" | "prompt" | "checkpoint" | "complete" | "verify" | "step" | "note" | "status";
   stage?: StageKind;
-  agent?: Agent;
   note?: string;
 }
 
 export interface CodedConfig {
   name: string;
   defaultWorkflow: string;
-  defaultAgents: Record<string, Agent>;
   context: {
     defaultMode: "brief" | "standard" | "full";
     maxKnowledgeFiles: number;

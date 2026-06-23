@@ -4,16 +4,16 @@ import { parse } from "yaml";
 import { readFileSync } from "node:fs";
 import { codedPaths, findCodedRoot, loopDir } from "../paths.js";
 import { appendEvent, loadLoop, resolveLoopId, setStatus } from "../store.js";
-import { cmdPrompt } from "./prompt.js";
+import { cmdContext } from "./context.js";
 
-// `coded checkpoint <id>`: without --record, generate the checkpoint prompt.
-// With --record <file>, store the agent's structured output as the next snapshot.
+// `coded checkpoint <id>`: without --record, print the checkpoint-stage context.
+// With --record <file>, store a structured checkpoint snapshot.
 export function cmdCheckpoint(
   taskRef: string | undefined,
-  opts: { record?: string; agent?: string; print?: boolean },
+  opts: { record?: string; save?: boolean },
 ): void {
   if (!opts.record) {
-    cmdPrompt(taskRef, { stage: "checkpoint", agent: opts.agent, print: opts.print });
+    cmdContext(taskRef, { stage: "checkpoint", save: opts.save });
     return;
   }
   const root = findCodedRoot();
@@ -37,14 +37,14 @@ export function cmdCheckpoint(
   console.log(`Recorded checkpoint ${dest} (drift: ${drift.status ?? "unknown"}).`);
 }
 
-// `coded complete <id>`: without --record, generate the completion prompt.
+// `coded complete <id>`: without --record, print the complete-stage context.
 // With --record <file>, store completion.yaml and reflect status.
 export function cmdComplete(
   taskRef: string | undefined,
-  opts: { record?: string; agent?: string; print?: boolean },
+  opts: { record?: string; save?: boolean },
 ): void {
   if (!opts.record) {
-    cmdPrompt(taskRef, { stage: "complete", agent: opts.agent, print: opts.print });
+    cmdContext(taskRef, { stage: "complete", save: opts.save });
     return;
   }
   const root = findCodedRoot();

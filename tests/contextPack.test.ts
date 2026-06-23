@@ -19,7 +19,6 @@ function setup() {
 const config: CodedConfig = {
   name: "coded",
   defaultWorkflow: "default",
-  defaultAgents: { implement: "claude-code" },
   context: { defaultMode: "standard", maxKnowledgeFiles: 6, maxRecentStageRuns: 3 },
   assets: {},
 };
@@ -37,6 +36,10 @@ const meta: LoopMeta = {
 const contract: LoopContract = {
   requirement: { summary: "ship it" },
   scope: { in: ["module a"], out: ["everything else"] },
+  steps: [
+    { id: "s-1", text: "wire the form", status: "done" },
+    { id: "s-2", text: "handle the error path", status: "doing" },
+  ],
   selfTests: [{ id: "st-1", name: "smoke", required: true }],
 };
 
@@ -50,6 +53,14 @@ describe("buildContextPack", () => {
     expect(pack.content).toContain("Project facts here.");
     expect(pack.content).toContain("Rules For This Session");
     expect(pack.tokenEstimate).toBeGreaterThan(0);
+  });
+
+  it("surfaces the working plan and next step", () => {
+    const paths = setup();
+    const pack = buildContextPack({ paths, config, meta, contract, stage: "implement" });
+    expect(pack.content).toContain("Working Plan");
+    expect(pack.content).toContain("Next step: s-2 handle the error path");
+    expect(pack.content).toContain("1/2 done");
   });
 
   it("carries the user instruction through", () => {

@@ -24,6 +24,14 @@ scope:
   in: []                   # 本次要做
   out: []                  # 本次明确不做 — 防止范围蔓延
 
+# Steps are the working plan — the "what's next" backbone that lets a fresh
+# session pick the task back up. Manage them with `coded step add/start/done/block`.
+steps:
+  - id: s-1
+    text: ""               # 一步要做的事
+    status: todo           # todo | doing | done | blocked
+    note: ""               # 可选：结果 / 为什么卡住
+
 # Checkpoints are key-uncertainty stops, not progress logs.
 checkpoints:
   - id: cp-1
