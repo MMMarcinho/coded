@@ -59,8 +59,9 @@ step
 program
   .command("resume")
   .argument("[task]", "task id (default: most recent)")
+  .option("--goal", "show a compact goal-oriented summary")
   .description("Show where the task stands: requirement, plan, next step.")
-  .action((task) => run(() => cmdResume(task)));
+  .action((task, opts) => run(() => cmdResume(task, opts)));
 
 program
   .command("list")

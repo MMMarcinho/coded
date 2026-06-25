@@ -34,6 +34,7 @@ coded step block s-3 "等后端给错误码字典"
 
 # 换了个会话？一条命令接着跑
 coded resume                         # 需求 / 计划 / 下一步 / 建议动作
+coded resume --goal                  # 输出适合更新 goal 的摘要
 
 coded list                           # 看所有任务
 coded done                           # 关闭当前任务
@@ -49,6 +50,7 @@ coded done                           # 关闭当前任务
 | `coded step done <id> [note]` | 标记完成（note 可记结果） |
 | `coded step block <id> [note]` | 标记卡住（note 记原因） |
 | `coded resume [task]` | 续跑视图：到哪了 / 下一步 / 建议 |
+| `coded resume --goal [task]` | goal 摘要：进度 / 下一步 / 阻塞 / 建议 goal 状态 |
 | `coded list` | 列出所有任务 |
 | `coded done [task]` | 关闭任务 |
 
@@ -67,8 +69,40 @@ coded 是给 Agent 用的——是**你**在跑长任务时主动用它把状态
 
 ```bash
 coded --json resume
+coded --json resume --goal
 coded --json list
 ```
+
+## 辅助 Goal
+
+coded 不直接接管 Codex/Claude 的 goal，也不调用外部 goal API。它更像 goal 的外部工作记忆：goal 负责"我要完成什么"，coded 负责"拆成哪几步、到哪了、下一步是什么、为什么卡住"。
+
+推荐给 Agent 的节奏：
+
+```bash
+coded start "修复登录失败时错误提示不准确的问题"
+coded step add "阅读登录流程和错误处理代码"
+coded step add "定位错误码到提示文案的映射位置"
+coded step add "实现文案修复"
+coded step add "补充或更新测试"
+coded step add "跑测试并确认行为"
+
+# 每次恢复上下文，先读任务账本
+coded --json resume
+
+# 需要更新/判断 goal 时，拿 goal 摘要
+coded resume --goal
+```
+
+`coded resume --goal` 会输出：
+
+- objective：任务需求，对应 goal objective。
+- progress：步骤进度。
+- next：下一步。
+- blocked：卡住的步骤和原因。
+- suggestedGoalStatus：`active`、`blocked` 或 `complete`。
+
+映射规则很保守：只有 `coded done` 后才建议 `complete`；只有当前可恢复的下一步是 blocked 时才建议 `blocked`；其它情况保持 `active`。
 
 ## 存储
 

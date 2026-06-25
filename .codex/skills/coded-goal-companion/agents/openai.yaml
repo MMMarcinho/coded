@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coded Goal Companion"
+  short_description: "Use coded as a local task ledger for goals."
+  default_prompt: "Use $coded-goal-companion to start or resume this long-running coding task, keep steps updated, and summarize goal status."
