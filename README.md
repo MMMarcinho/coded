@@ -8,15 +8,15 @@
 
 ## 安装
 
-```bash
-npm install -g coded        # 全局注册 coded 命令，要求 Node >= 18
-```
-
-从源码：
+需要 Node.js 18 或更高版本。请从本仓库安装；npm 上的同名 `coded` 是另一款工具。
 
 ```bash
-git clone <repo-url> && cd coded
-npm install && npm run build && npm link
+git clone https://github.com/MMMarcinho/coded.git
+cd coded
+npm ci
+npm run build
+npm link
+coded --version
 ```
 
 ## 用法
@@ -54,7 +54,15 @@ coded done                           # 关闭当前任务
 | `coded list` | 列出所有任务 |
 | `coded done [task]` | 关闭任务 |
 
-不带 `[task]` 的命令默认作用于**最近更新的那个任务**；用 `-t/--task <id>` 指定其它任务。
+不指定任务时，`step` 子命令、`resume` 和 `done` 都作用于最近更新的任务。操作同一工作区里的其他任务时，先用 `coded list` 查到完整 ID。只有 `step` 子命令用 `-t/--task`；`resume` 和顶层 `done` 直接接任务 ID：
+
+```bash
+TASK_ID='替换为完整任务 ID'
+coded step add "补充回归测试" --task "$TASK_ID"
+coded resume "$TASK_ID" --goal
+# 完成该任务的所有步骤后再关闭
+coded done "$TASK_ID"
+```
 
 ## 给 Coding Agent 的用法
 
